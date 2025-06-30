@@ -1,0 +1,63 @@
+<canvas id="carbonBarChart"></canvas>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@1.4.0"></script>
+
+<script>
+  fetch('/commonData')
+    .then(res => res.json())
+    .then(data => {
+      const months = ['January', 'February', ..., 'December'];
+      const carbonData = data.carbon || [];
+
+      // TÍNH GIÁ TRỊ TRUNG BÌNH
+      const validData = carbonData.filter(v => typeof v === 'number');
+      const meanValue = validData.reduce((sum, val) => sum + val, 0) / validData.length;
+
+      const ctx = document.getElementById('carbonBarChart').getContext('2d');
+      new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: months.slice(0, carbonData.length),
+          datasets: [{
+            label: 'Carbon-footprint reduced (g CO₂/serving)',
+            data: carbonData,
+            backgroundColor: '#2196f3',
+            borderColor: '#1976d2',
+            borderWidth: 1
+          }]
+        },
+        options: {
+          responsive: true,
+          scales: {
+            y: {
+              beginAtZero: true,
+              title: {
+                display: true,
+                text: 'g CO₂'
+              }
+            }
+          },
+          plugins: {
+            annotation: {
+              annotations: {
+                meanLine: {
+                  type: 'line',
+                  yMin: meanValue,
+                  yMax: meanValue,
+                  borderColor: 'red',
+                  borderWidth: 2,
+                  label: {
+                    content: `Mean: ${meanValue.toFixed(2)}`,
+                    enabled: true,
+                    position: 'end'
+                  }
+                }
+              }
+            }
+          }
+        },
+        plugins: [Chart.registry.getPlugin('annotation')]
+      });
+    });
+</script>

@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Calories Tracker</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@1.4.0"></script>
+  <style>
+    body { font-family: Arial; padding: 10px; }
+    h2 {margin-top: 0;}
+    #result { margin-top: 1px; padding: 10px; border: 1px solid #ccc; display: none; }
+    .error { color: red; }
+  </style>
+</head>
+<body>
+  <h2>Emic Travel - Carbon dioxide Tracker</h2>
+  <form id="loginForm">
+    <h3>1. Login to view your data.</h3>
+    <ul>
+      <div style="line-height: 0.3;">
+      <li><label for="username">Username:</label>
+      <input type="text" id="username" name="username" required></li>
+      <br><br>
+      <li><label for="password">Password:</label>
+      <input type="password" id="password" name="password" required></li>
+      <br><br>
+      <button type="submit">Login</button>
+      <p>*Please ask tour guide for your account.</p>
+      </div>
+    </ul>
+  </form>
+
+  <div id="result"></div>
+
+  <script>
+    const form = document.getElementById("loginForm");
+    const result = document.getElementById("result");
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const username = form.username.value;
+      const password = form.password.value;
+
+      const res = await fetch("/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password }),
+      });
+      console.log("Hello Okeee -1")
+      const data = await res.json();
+      result.style.display = "block";
+      console.log("Hello Okeee0")
+
+      if (res.ok && String(data.success_message) === "T_G") {
+        // const images = data.responseData.images || [];
+        // result.innerHTML = "";                   // Xoá nội dung cũ (nếu có)
+
+        // images.forEach(src => {
+        //   /* Nếu server trả về base64 thô, thêm prefix data:image/... */
+        //   const img = document.createElement("img");
+        //   img.src  = src.startsWith("data:") ? src : `data:image/png;base64,${src}`;
+        //   img.alt  = "QR code";
+        //   img.loading = "lazy";
+        //   result.appendChild(img);
+        // });
+        // console.log("data =", data)
+        const qrList = data.images || [];
+        // console.log("Hello Okeee1", qrList)
+        // console.log("Hello Okeee1", qrList[0])
+        result.innerHTML = "";                    // Xoá kết quả cũ nếu có
+
+        qrList.forEach(({ Customer_Name, qr }) => {
+          const wrap = document.createElement("div");
+          wrap.className = "qr-item";
+          // console.log("Hello customer", Customer_Name)
+
+          const img = new Image();
+          img.src = qr;                           // Đã là data-URL hoàn chỉnh
+          img.alt = `QR của ${Customer_Name}`;
+          img.loading = "lazy";
+
+          const caption = document.createElement("p");
+          caption.textContent = "Dear " + Customer_Name + ", this is your GGGG account:";
+
+          wrap.append(caption, img);
+          result.appendChild(wrap);
+        });
+        // console.log("Hello Okeee2")
+      }else
+      if (res.ok && data.success_message == "client") {
+        console.log("Hello Okeee2")
+        const [oldVal, oldTotal] = data.totalOldConsumptionUntilNow;
+        const [newVal, newTotal] = data.totalNewConsumptionUntilNow;
+        const [gapVal, gapTotal] = data.gap;
+
+        const oldPercent = Math.round((oldVal / oldTotal) * 100);
+        const newPercent = Math.round((newVal / newTotal) * 100);
+        const gapPercent = Math.round((gapVal / gapTotal) * 100);
+        const compare = data.compare;
+
+        let content = `
+          <h3>Hello ${username},</h3>
+          <p>${data.message}</p>
+
+          <p><b>Your Regular Consumption without GGGG:</b> ${oldVal.toFixed(2)} / ${oldTotal.toFixed(2)} g CO₂ (*)</p>
+          <div style="background: #eee; border-radius: 8px; overflow: hidden;">
+            <div style="width: ${oldPercent}%; background: #f44336; color: white; padding: 5px;">
+              ${oldPercent}%
+            </div>
+          </div><br>
+
+          <p><b>Your Consumption with GGGG:</b> ${newVal.toFixed(2)} / ${newTotal.toFixed(2)} g CO₂ (*)</p>
+          <div style="background: #eee; border-radius: 8px; overflow: hidden;">
+            <div style="width: ${newPercent}%; background: #2196f3; color: white; padding: 5px;">
+              ${newPercent}%
+            </div>
+          </div><br>
+
+          <p><b>You have saved:</b> ${gapVal.toFixed(2)} / ${gapTotal.toFixed(2)} g CO₂ (*)</p>
+          <div style="background: #eee; border-radius: 8px; overflow: hidden;">
+            <div style="width: ${gapPercent}%; background: #4caf50; color: white; padding: 5px;">
+              ${gapPercent}%
+            </div>
+          </div>
+          <p><b>Your savings corresponds to:</b></p>
+          <ul>
+            <div style="line-height: 1.6;">
+            <li>You have planted: <b>${compare[0].toFixed(2)}</b> trees 🌳🌳🌳 in a day, or</li>
+            <li>You don't drive a gasoline car ⛽🚗 for: <b>${compare[1].toFixed(2)}</b> kilometers.</li>
+            </div>
+          </ul>
+          <p>(*) 1 kilogram (kg) = 1,000 grams (g)</p>
+        `;
+        if (data.certificateUrl) {
+          // const link = document.createElement("a");
+          // link.href = data.certificateUrl;
+          // link.download = ""; // Tên sẽ lấy từ header
+          // document.body.appendChild(link);
+          // link.click();
+          // document.body.removeChild(link);
+          // <h4>Success ✅</h4>
+          content += `
+          <h3>${data.certificateMessage1}</h3>
+          <h3>${data.certificateMessage2}</h3>
+          ${data.certificateUrl ? `
+          <iframe src="${data.certificateUrl}" width="100%" height="600px" style="border: 1px solid #ccc;"></iframe>
+          ` : ''}`;
+        }
+        result.innerHTML = content;
+      } else {
+        result.innerHTML = `<p class="error">${data.message}</p>`;
+      }
+    });
+  </script>
+  <!-- <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> -->
+  <!-- <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> -->
+
+  <h3>2. Important numbers and data of GGGG</h3>
+  <!-- <canvas id="wasteChart" width="800" height="400"></canvas> -->
+  <!-- <canvas id="wasteChart" width="500" height="500"></canvas> -->
+  <!-- <canvas id="wastePieChart" width="400" height="400"></canvas> -->
+
+  <!-- <canvas id="wastePieChart" width="400" height="400"></canvas> -->
+  <!-- <canvas id="carbonBarChart" width="600" height="400"></canvas> -->
+  <!-- <canvas id="carbonBarChart" width="200" height="100"></canvas> -->
+
+  <style>
+  #carbonBarChart {
+    max-width: 1000px;  /* hoặc 200px */
+    max-height: 300px;
+  }
+  </style>
+<canvas id="carbonBarChart"></canvas>
+<div id="messageContainer1"></div>
+<div id="messageContainer2"></div>
+<div id="messageContainer3"></div>
+
+<script>
+  // Đăng ký plugin annotation
+  Chart.register(window['chartjs-plugin-annotation']);
+
+  fetch('/commonData')
+    .then(res => res.json())
+    .then(data => {
+      const months = ['January', 'February', 'March', 'April', 'May', 'June',
+                      'July', 'August', 'September', 'October', 'November', 'December'];
+      const carbonData = data.carbon || [];
+      // const validData = carbonData.filter(v => typeof v === 'number');
+      // const meanValue = validData.reduce((sum, val) => sum + val, 0) / validData.length;
+      const meanValue = data.General1_carbon || 0;
+
+      const ctx = document.getElementById('carbonBarChart').getContext('2d');
+      new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: months.slice(0, carbonData.length),
+          datasets: [{
+            label: 'Carbon-footprint reduced (g CO₂/serving), compared to traditional solution',
+            data: carbonData,
+            backgroundColor: '#2196f3',
+            borderColor: '#1976d2',
+            borderWidth: 1
+          }]
+        },
+        options: {
+          responsive: true,
+          scales: {
+            y: {
+              beginAtZero: false,
+              title: {
+                display: true,
+                text: 'g CO₂'
+              }
+            }
+          },
+          plugins: {
+            annotation: {
+              annotations: {
+                meanLine: {
+                  type: 'line',
+                  yMin: meanValue,
+                  yMax: meanValue,
+                  borderColor: 'red',
+                  borderWidth: 2,
+                  label: {
+                    content: `Mean: ${meanValue.toFixed(2)}`,
+                    enabled: true,
+                    position: 'end'
+                  }
+                }
+              }
+            }
+          }
+        }
+      });
+      General1_plastic = data.General1_plastic;
+      if (General1_plastic.value !== null && General1_plastic.index !== null){
+        // <p>Last month, we reduced our plastic bottle waste by <b>${compare[0].toFixed(2)}%</b> compared to the previous month.</p>
+        document.getElementById('messageContainer1').innerHTML = `<p>Last month, we reduced our Plastic Bottle waste by <b>${General1_plastic.value.toFixed(2)}</b>% compared to <b>${months[General1_plastic.index-1]}</b>.</p>`;
+      }
+      General1_waste = data.General1_waste;
+      if (General1_waste.value !== null && General1_waste.index !== null){
+        // <p>Last month, we reduced our plastic bottle waste by <b>${compare[0].toFixed(2)}%</b> compared to the previous month.</p>
+        document.getElementById('messageContainer2').innerHTML = `<p>Last month, we reduced our Food waste by <b>${General1_waste.value.toFixed(2)}</b> g/guest compared to <b>${months[General1_waste.index-1]}</b>.</p>`;
+      }
+      plastic_bottle_Path = data.plastic_bottle_Path || null;
+      if (plastic_bottle_Path){
+        document.getElementById('messageContainer3').innerHTML = `<p>The plastic bottle path is ${plastic_bottle_Path}.</p>`;
+      }
+    });
+</script>
+
+
+
+</body>
+</html>

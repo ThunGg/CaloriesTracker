@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Calories Tracker</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@1.4.0"></script>
+  <style>
+    /* —— RESET GỌN ———————————————————— */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body { font-family: Arial; padding: 10px; color: #008000; font-size: 20px; background-color: #ffffff; padding-bottom: 56px;}
+    h2 {margin-top: 0;}
+    #result { margin-top: 20px; padding: 20px; border: 10px solid #ccc; display: none; }
+    .error { color: red; }
+
+    .logo-img{
+      height: 100%;          /* lấp đầy chiều cao navbar */
+      max-height: 100%;      /* không vượt quá */
+      width: auto;           /* giữ nguyên tỉ lệ – KHÔNG 100 % */
+      object-fit: contain;   /* tránh méo ảnh khi bị co */
+      display: block;        /* loại bỏ khoảng trắng dưới ảnh inline */
+    }
+
+    /* —— THANH ĐIỀU HƯỚNG ————————————— */
+    .navbar {
+      position: fixed;          /* “khoá” vào viewport */
+      top: 0; left: 0;
+      width: 100%;
+      height: 100px;             /* cao 64 px */
+      background: #ffffffd9;    /* trắng hơi mờ để thấy nội dung lướt bên dưới */
+      backdrop-filter: blur(6px);
+      border-bottom: 1px solid #008000; /*e5e7eb;*/
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 24px;
+      z-index: 1000;            /* nằm trên mọi thứ khác */
+      color: #008000;
+    }
+    /* —— LOGO ———————————————— */
+    /* .navbar .logo {
+      font-size: 1.25rem;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      text-decoration: none;
+      color: #111;
+    } */
+    /* —— MENU CHÍNH (nút/ link) ———— */
+    .navbar .nav-links {
+      display: flex;
+      gap: 50px;                /* khoảng cách giữa các nút */
+    }
+    .nav-links a {
+      text-decoration: none;
+      font-size: 23px;
+      color: #008000;
+      font-weight: 500;
+      position: relative;
+      padding: 4px 0;
+    }
+    /* gạch dưới khi hover */
+    .nav-links a::after {
+      content: "";
+      position: absolute;
+      left: 0; bottom: -4px;
+      width: 0; height: 2px;
+      background: #008000;
+      transition: width 0.25s;
+    }
+
+    .nav-links a:hover::after { width: 100%; }
+    /* —— THÂN TRANG ĐỂ DEMO CUỘN ———— */
+    main {
+      margin-top: 80px;         /* đẩy nội dung xuống dưới navbar */
+      padding: 24px;
+      line-height: 1.6;
+    }
+    /* ======= Cấu hình chung nút login ======= */
+  .btn-login{
+    position:relative;
+    display:inline-block;
+    font-size:18px;
+    font-weight:600;
+    padding:10px 32px;
+    color:#fff;
+    background:#008000;                /* xanh lá */
+    border:2px solid #008000;
+    border-radius:6px;
+    cursor:pointer;
+    overflow:hidden;                   /* ẩn ripple tràn */
+    transition:
+      transform .25s cubic-bezier(.22,1,.36,1),
+      box-shadow .25s cubic-bezier(.22,1,.36,1);
+  }
+
+  /* —— vệt sáng khi hover —— */
+  .btn-login::before{
+    content:"";
+    position:absolute;
+    top:0; left:-100%;
+    width:100%; height:100%;
+    background:linear-gradient(120deg,
+       rgba(255,255,255,0) 0%,
+       rgba(255,255,255,.5) 50%,
+       rgba(255,255,255,0) 100%);
+    transform:skewX(-20deg);
+    transition:left .6s;
+    pointer-events:none;
+  }
+
+  /* —— hiệu ứng nâng nổi —— */
+  .btn-login:hover{
+    transform:translateY(-4px);
+    box-shadow:0 10px 18px rgba(0,0,0,.25);
+  }
+  .btn-login:hover::before{ left:200%; }
+
+  /* ======= TRẠNG THÁI NHẤN GIỮ ======= */
+  .btn-login:active{
+    transform:translateY(0);                /* lún xuống */
+    box-shadow:0 4px 8px rgba(0,0,0,.25);
+  }
+
+  /* ======= PHẦN TỬ RIPPLE SẼ ĐƯỢC THÊM BẰNG JS ======= */
+  .ripple{
+    position:absolute;
+    border-radius:50%;
+    transform:scale(0);
+    background:rgba(255,255,255,.5);
+    animation:ripple 600ms ease-out;
+    pointer-events:none;
+  }
+  @keyframes ripple{
+    to{transform:scale(4);opacity:0}
+  }
+
+  input[type="text"],
+  input[type="password"] {
+    border: 2px solid #008000;   /* xanh lá đậm */
+    border-radius: 4px;
+    padding: 6px 8px;
+    font-size: 20px;
+  }
+
+  input[type="text"]:focus,
+  input[type="password"]:focus {
+    border-color: #00c060;                    /* xanh sáng hơn */
+    outline: none;                            /* bỏ viền mặc định */
+    box-shadow: 0 0 0 2px rgba(0,192,96,.25); /* viền phát sáng nhẹ */
+  }
+
+  /* 1) Footer bar cố định */
+  .site-footer{
+    position: fixed;            /* dính đáy màn hình */
+    bottom: 0; left: 0;
+    width: 100%;
+    height: 56px;               /* chiều cao footer */
+    background: #008000;        /* màu nền tùy ý */
+    color: #fff;
+    display: flex;
+    align-items: center;        /* căn giữa theo chiều dọc */
+    justify-content: center;    /* căn giữa ngang */
+    padding: 0 16px;
+    z-index: 900;               /* thấp hơn navbar (1000) nhưng cao hơn nội dung */
+  }
+
+    /* 3) Link bên trong footer */
+    .site-footer a{
+      color: #fff;
+      text-decoration: underline;
+      margin: 0 6px;
+      font-weight: 500;
+    }
+    .site-footer a:hover{
+      opacity: .8;
+    }
+
+    /* ---------- VỆT SÁNG ---------- */
+    .site-footer::after{
+      content:"";
+      position:absolute;
+      top:0; left:-100%;                /* bắt đầu ngoài khung */
+      width:100%; height:100%;
+      background:linear-gradient(120deg,
+        rgba(255,255,255,0) 0%,
+        rgba(255,255,255,.6) 50%,
+        rgba(255,255,255,0) 100%);
+      transform:skewX(-20deg);
+      pointer-events:none;
+    }
+
+    /* Kích hoạt animation khi có class .shine */
+    .site-footer.shine::after{
+      animation: footer-shine 2.0s cubic-bezier(.23,1,.32,1);
+    }
+
+    /* ---------- KEYFRAMES ---------- */
+    @keyframes footer-shine{
+      0%   { left:-100%; }
+      100% { left:200%; }
+    }
+
+
+    /* ----- khung phủ mờ toàn màn hình ----- */
+    .nav-links{                    /* cần vị trí tương đối để popover bám vào */
+      position:relative;
+    }
+
+    /* ----- popover ----- */
+    .info-pop{
+      position:absolute;
+      top: 100%;        /* ngay dưới navbar + 8 px đệm */
+      /* left:auto;  */
+      right: 0;        /* JS sẽ cập nhật sang vị trí nút */
+      width: 500px;
+      max-width:500px;
+      background:#fff;
+      color:#111;
+      border:1px solid #ccc;
+      border-radius:8px;
+      padding:16px;
+      box-shadow:0 6px 18px rgba(0,0,0,.15);
+      display:none;                /* ẩn mặc định */
+      z-index:1500;                /* cao hơn navbar */
+      font-size:16px;
+      line-height:1.45;
+    }
+
+    /* mũi tam giác nhỏ */
+    .info-pop::before{
+      content:"";
+      position:absolute;
+      top:-8px;                   /* nằm trên đỉnh hộp */
+      left:32px;                  /* JS sẽ canh chính xác theo nút */
+      border:8px solid transparent;
+      border-bottom-color:#ccc;
+    }
+    .info-pop::after{
+      content:"";
+      position:absolute;
+      top:-7px;
+      left:32px;
+      border:7px solid transparent;
+      border-bottom-color:#fff;
+    }
+
+    /* link trong popover */
+    .info-pop a{ color:#008000; font-weight:500 }
+
+    /* khi bật */
+    .info-pop.show{ display:block; }
+
+  </style>
+</head>
+<body>
+
+  <header class="navbar">
+    <!-- <a href="Emic_logo.png" class="logo">MyLogo</a> -->
+    <a href="https://emictravel.com/" class="logo-img" target="_blank">
+    <img src="/Emic_logo.png" alt="EMIC Logo" class="logo-img">
+    </a>
+    <!-- <a href="#" class="tagline" onclick="location.reload()">Carbon dioxide Tracker</a> -->
+    <nav class="nav-links">
+      <!-- <a href="#" class="tagline" onclick="location.reload()">Carbon dioxide Tracker</a> -->
+      <a href="/" class="tagline">Carbon dioxide Tracker</a>
+      <!-- <a href="#info">Information & Privacy</a> -->
+      <a href="#info" id="info-btn">Information &amp; Privacy</a>
+      <a href="#contact" id="contact-btn">Contact</a>
+      <!-- <a id="contact-btn">Contact</a> -->
+    </nav>
+    
+    <div id="info-pop" class="info-pop">
+      <h4>Information &amp; Privacy</h4>
+      <p>• This web is a part of <a href="https://emictravel.com/" target="_blank">Emic Travel Co.</a>.</p>
+      <p>• Trang web chỉ lưu dữ liệu CO₂ cục bộ.</p>
+      <p>• Mọi thao tác của bạn không được gửi ra ngoài máy chủ khác.</p>
+  </div>
+  </header>
+
+<!-- <footer class="site-footer">
+  <div class="footer-content">
+    © 2025 Carbon Dioxide Tracker ·
+    <a href="/privacy">Privacy</a> ·
+    <a href="/contact">Contact</a>
+  </div>
+</footer> -->
+
+<footer class="site-footer" id="site-footer">
+  <div class="footer-content">
+    <strong>Emic Travel Co.</strong> &nbsp;·&nbsp;
+    Group 1, Vong Nhi Village, Cam Thanh Commune, Hoi An City, Quang Nam Province, Viet Nam
+    <br>
+    ☎ <a href="tel:+84905402286">+84 90 54 02 286</a> &nbsp;·&nbsp;
+    Fax <a href="tel:+84905402286">+84 90 54 02 286</a> &nbsp;·&nbsp;
+    ✉ <a href="mailto:sales@emictravel.com">sales@emictravel.com</a> &nbsp;·&nbsp;
+    <a href="https://emictravel.com/" target="_blank">Emic Travel Homepage</a>
+  </div>
+</footer>
+
+<main>
+  <!-- <h2>Emic Travel - Carbon dioxide Tracker</h2> -->
+  <form id="loginForm">
+    <h3>1. Login to view your data.</h3>
+    <ul>
+      <div style="line-height: 0.3;">
+      <li><label for="username">Username:</label>
+      <input type="text" id="username" name="username" required></li>
+      <br><br>
+      <li><label for="password">Password:</label>
+      <input type="password" id="password" name="password" required></li>
+      <br><br>
+      
+      </div>
+    </ul>
+    <!-- <button type="submit" style="
+      font-size: 16px;       /* cỡ chữ lớn hơn */
+      font-weight: 700;
+      padding: 7px 30px;    /* tăng chiều cao & chiều rộng */
+      color: #008000;
+      border: 2px solid #008000;
+      border-radius: 10px;
+    ">Login</button> -->
+    <button class="btn-login">Login</button>
+    <p>*Please ask tour guide for your account.</p>
+  </form>
+
+  <div id="result"></div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const contactBtn = document.getElementById('contact-btn');
+      const footer     = document.getElementById('site-footer');
+
+      contactBtn.addEventListener('click', e => {
+        e.preventDefault();             // không nhảy #contact
+        footer.classList.add('shine');  // bật animation
+      });
+
+      /* Khi animation kết thúc, gỡ class để lần sau chạy lại được */
+      footer.addEventListener('animationend', () => {
+        footer.classList.remove('shine');
+      });
+    });
+
+    document.addEventListener('DOMContentLoaded', () => {
+    const btn   = document.getElementById('info-btn');
+    const pop   = document.getElementById('info-pop');
+
+    /* ---- mở / đóng popover ---- */
+    btn.addEventListener('click', e => {
+      e.preventDefault();
+
+      /* nếu đã mở thì đóng lại */
+      if(pop.classList.contains('show')){
+        pop.classList.remove('show');
+        return;
+      }
+
+      /* tính vị trí nút để canh trái popover & mũi tên */
+      // const btnRect = btn.getBoundingClientRect();
+      // const navRect = btn.parentElement.getBoundingClientRect();
+      // const offsetX = btnRect.left - navRect.left;
+
+      // pop.style.left        = offsetX + 'px';
+      // pop.style.setProperty('--arrow-left', (btnRect.width/2) + 'px');
+      /* dịch mũi tên */
+      // pop.style.setProperty('--arrow-offset', (btnRect.width/2)+'px');
+      // pop.querySelector('::before');
+
+      /* mũi tam giác */
+      // pop.style.setProperty('--arrow-left', (btnRect.width/2)+'px');
+      // pop.querySelectorAll('::before');
+
+      /* hiển thị */
+      pop.classList.add('show');
+    });
+
+    /* ---- ẩn khi bấm ra ngoài ---- */
+    document.addEventListener('click', e => {
+      if(!pop.contains(e.target) && e.target !== btn){
+        pop.classList.remove('show');
+      }
+    });
+
+    /* ---- ẩn khi nhấn ESC ---- */
+    document.addEventListener('keydown', e=>{
+      if(e.key==='Escape') pop.classList.remove('show');
+    });
+  });
+
+    document.addEventListener("mousedown", e=>{
+      const btn = e.target.closest('.btn-login');
+      if(!btn) return;
+
+      const rect = btn.getBoundingClientRect();
+      const ripple = document.createElement('span');
+      const size   = Math.max(rect.width, rect.height)*2;
+      const x = e.clientX - rect.left - size/2;
+      const y = e.clientY - rect.top  - size/2;
+
+      ripple.className = 'ripple';
+      ripple.style.width  = ripple.style.height = size+'px';
+      ripple.style.left   = x+'px';
+      ripple.style.top    = y+'px';
+
+      btn.appendChild(ripple);
+      ripple.addEventListener('animationend', ()=>ripple.remove());
+    });
+    document.addEventListener('DOMContentLoaded', async () => {
+      // 1. Lấy phần query string, ví dụ "?token=abc123&foo=bar"
+      const query  = window.location.search;
+
+      // 2. Dùng URLSearchParams để tiện truy xuất
+      const params = new URLSearchParams(query);
+
+      // 3. Đọc giá trị token (trả về null nếu không có)
+      const token  = params.get('token');
+
+      if (token) {
+        console.log('Token trên URL là:', token);
+        /* TODO: dùng token để gọi API, hiển thị dữ liệu, v.v. */
+        const res = await fetch('/Alogin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        // body: JSON.stringify(token),
+        body: JSON.stringify({ token }),
+        });
+        const data = await res.json();
+        await showResult(res, data, username);
+        // Sau khi bạn đã lấy & xử lý xong token …
+        history.replaceState({}, '', '/');           // hoặc '/trang-chu' tuỳ cấu trúc site
+      }
+    });
+
+    const form = document.getElementById("loginForm");
+    const result = document.getElementById("result");
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const username = form.username.value;
+      const password = form.password.value;
+
+      const res = await fetch('/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password }),
+      });
+      const data = await res.json();
+      await showResult(res, data, username);
+    });    
+
+    async function showResult(res, data, username = '') {
+      // Here 1
+      result.style.display = "block";
+      console.log("Hello Okeee0")
+
+      if (res.ok && String(data.success_message) === "T_G") {
+        // const images = data.responseData.images || [];
+        // result.innerHTML = "";                   // Xoá nội dung cũ (nếu có)
+
+        // images.forEach(src => {
+        //   /* Nếu server trả về base64 thô, thêm prefix data:image/... */
+        //   const img = document.createElement("img");
+        //   img.src  = src.startsWith("data:") ? src : `data:image/png;base64,${src}`;
+        //   img.alt  = "QR code";
+        //   img.loading = "lazy";
+        //   result.appendChild(img);
+        // });
+        // console.log("data =", data)
+        const qrList = data.images || [];
+        // console.log("Hello Okeee1", qrList)
+        // console.log("Hello Okeee1", qrList[0])
+        result.innerHTML = "";                    // Xoá kết quả cũ nếu có
+
+        qrList.forEach(({ Customer_Name, qr }) => {
+          const wrap = document.createElement("div");
+          wrap.className = "qr-item";
+          // console.log("Hello customer", Customer_Name)
+
+          const img = new Image();
+          img.src = qr;                           // Đã là data-URL hoàn chỉnh
+          img.alt = `QR của ${Customer_Name}`;
+          img.loading = "lazy";
+
+          const caption = document.createElement("p");
+          caption.textContent = "Dear " + Customer_Name + ", this is your GGGG account:";
+
+          wrap.append(caption, img);
+          result.appendChild(wrap);
+        });
+        // console.log("Hello Okeee2")
+      }else
+      if (res.ok && data.success_message == "client") {
+        console.log("Hello Okeee2")
+        const [oldVal, oldTotal] = data.totalOldConsumptionUntilNow;
+        const [newVal, newTotal] = data.totalNewConsumptionUntilNow;
+        const [gapVal, gapTotal] = data.gap;
+
+        const oldPercent = Math.round((oldVal / oldTotal) * 100);
+        const newPercent = Math.round((newVal / newTotal) * 100);
+        const gapPercent = Math.round((gapVal / gapTotal) * 100);
+        const compare = data.compare;
+        const username = data.userName;
+
+        let content = `
+          <h3>Hello ${username},</h3>
+          <p>${data.message}</p>
+
+          <p><b>Your Regular Consumption without GGGG:</b> ${oldVal.toFixed(2)} / ${oldTotal.toFixed(2)} g CO₂ (*)</p>
+          <div style="background: #eee; border-radius: 8px; overflow: hidden;">
+            <div style="width: ${oldPercent}%; background: #f44336; color: white; padding: 5px;">
+              ${oldPercent}%
+            </div>
+          </div><br>
+
+          <p><b>Your Consumption with GGGG:</b> ${newVal.toFixed(2)} / ${newTotal.toFixed(2)} g CO₂ (*)</p>
+          <div style="background: #eee; border-radius: 8px; overflow: hidden;">
+            <div style="width: ${newPercent}%; background: #2196f3; color: white; padding: 5px;">
+              ${newPercent}%
+            </div>
+          </div><br>
+
+          <p><b>You have saved:</b> ${gapVal.toFixed(2)} / ${gapTotal.toFixed(2)} g CO₂ (*)</p>
+          <div style="background: #eee; border-radius: 8px; overflow: hidden;">
+            <div style="width: ${gapPercent}%; background: #4caf50; color: white; padding: 5px;">
+              ${gapPercent}%
+            </div>
+          </div>
+          <p><b>Your savings corresponds to:</b></p>
+          <ul>
+            <div style="line-height: 1.6;">
+            <li>You have planted: <b>${compare[0].toFixed(2)}</b> trees 🌳🌳🌳 in a day, or</li>
+            <li>You don't drive a gasoline car ⛽🚗 for: <b>${compare[1].toFixed(2)}</b> kilometers.</li>
+            </div>
+          </ul>
+          <p>(*) 1 kilogram (kg) = 1,000 grams (g)</p>
+        `;
+        if (data.certificateUrl) {
+          // const link = document.createElement("a");
+          // link.href = data.certificateUrl;
+          // link.download = ""; // Tên sẽ lấy từ header
+          // document.body.appendChild(link);
+          // link.click();
+          // document.body.removeChild(link);
+          // <h4>Success ✅</h4>
+          content += `
+          <h3>${data.certificateMessage1}</h3>
+          <h3>${data.certificateMessage2}</h3>
+          ${data.certificateUrl ? `
+          <iframe src="${data.certificateUrl}" width="100%" height="600px" style="border: 1px solid #ccc;"></iframe>
+          ` : ''}`;
+        }
+        result.innerHTML = content;
+      } else {
+        result.innerHTML = `<p class="error"> Error showing data: ${data.message}</p>`;
+      }
+    // });
+    }
+    // Here 1
+  </script>
+  <!-- <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> -->
+  <!-- <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> -->
+
+  <h3>2. Important numbers and data of GGGG</h3>
+  <!-- <canvas id="wasteChart" width="800" height="400"></canvas> -->
+  <!-- <canvas id="wasteChart" width="500" height="500"></canvas> -->
+  <!-- <canvas id="wastePieChart" width="400" height="400"></canvas> -->
+
+  <!-- <canvas id="wastePieChart" width="400" height="400"></canvas> -->
+  <!-- <canvas id="carbonBarChart" width="600" height="400"></canvas> -->
+  <!-- <canvas id="carbonBarChart" width="200" height="100"></canvas> -->
+
+  <style>
+  #carbonBarChart {
+    max-width: 1000px;  /* hoặc 200px */
+    max-height: 280px;
+  }
+  </style>
+<canvas id="carbonBarChart"></canvas>
+<div id="messageContainer1"></div>
+<div id="messageContainer2"></div>
+<div id="messageContainer3"></div>
+
+<script>
+  // Đăng ký plugin annotation
+  Chart.register(window['chartjs-plugin-annotation']);
+
+  fetch('/commonData')
+    .then(res => res.json())
+    .then(data => {
+      const months = ['January', 'February', 'March', 'April', 'May', 'June',
+                      'July', 'August', 'September', 'October', 'November', 'December'];
+      const carbonData = data.carbon || [];
+      // const validData = carbonData.filter(v => typeof v === 'number');
+      // const meanValue = validData.reduce((sum, val) => sum + val, 0) / validData.length;
+      const meanValue = data.General1_carbon || 0;
+
+      const ctx = document.getElementById('carbonBarChart').getContext('2d');
+      new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: months.slice(0, carbonData.length),
+          datasets: [{
+            label: 'Carbon-footprint reduced (g CO₂/serving), compared to traditional solution',
+            data: carbonData,
+            backgroundColor: '#2196f3',
+            borderColor: '#1976d2',
+            borderWidth: 1
+          }]
+        },
+        options: {
+          responsive: true,
+          scales: {
+            y: {
+              beginAtZero: false,
+              title: {
+                display: true,
+                text: 'g CO₂'
+              }
+            }
+          },
+          plugins: {
+            annotation: {
+              annotations: {
+                meanLine: {
+                  type: 'line',
+                  yMin: meanValue,
+                  yMax: meanValue,
+                  borderColor: 'red',
+                  borderWidth: 2,
+                  label: {
+                    content: `Mean: ${meanValue.toFixed(2)}`,
+                    enabled: true,
+                    position: 'end'
+                  }
+                }
+              }
+            }
+          }
+        }
+      });
+      General1_plastic = data.General1_plastic;
+      if (General1_plastic.value !== null && General1_plastic.index !== null){
+        // <p>Last month, we reduced our plastic bottle waste by <b>${compare[0].toFixed(2)}%</b> compared to the previous month.</p>
+        document.getElementById('messageContainer1').innerHTML = `<p>Last month, we reduced our Plastic Bottle waste by <b>${General1_plastic.value.toFixed(2)}</b>% compared to <b>${months[General1_plastic.index-1]}</b>.</p>`;
+      }
+      General1_waste = data.General1_waste;
+      if (General1_waste.value !== null && General1_waste.index !== null){
+        // <p>Last month, we reduced our plastic bottle waste by <b>${compare[0].toFixed(2)}%</b> compared to the previous month.</p>
+        document.getElementById('messageContainer2').innerHTML = `<p>Last month, we reduced our Food waste by <b>${General1_waste.value.toFixed(2)}</b> g/guest compared to <b>${months[General1_waste.index-1]}</b>.</p>`;
+      }
+      plastic_bottle_Path = data.plastic_bottle_Path || null;
+      if (plastic_bottle_Path){
+        document.getElementById('messageContainer3').innerHTML = `<p>The plastic bottle path is ${plastic_bottle_Path}.</p>`;
+      }
+    });
+</script>
+
+
+</main>
+</body>
+</html>
