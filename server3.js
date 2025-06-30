@@ -31,33 +31,76 @@ if (!fs.existsSync(CSV_PATH)) {
 }
 const csvStream = fs.createWriteStream(CSV_PATH, { flags: 'a' });
 // --- thống kê RAM như cũ ---
-const ipStats = Object.create(null);
+export const ipStats = Object.create(null);
 app.set('trust proxy', true);
+
+global.cnt_Web_Visit_times = 0;
+global.cnt_Guest_Web_Login_times = 0;
+global.cnt_TourGuide_Web_Login_times = 0;
+
 app.use((req, res, next) => {
-  const rawIp = req.ip || req.connection.remoteAddress;
-  const ip = rawIp.replace(/^.*:/, '') || 'unknown';
+//   const rawIp = req.ip || req.connection.remoteAddress;
+//   const ip = rawIp.replace(/^.*:/, '') || 'unknown';
 
-  const geo = geoip.lookup(ip);
-  const country = geo?.country || 'UNKNOWN';
+//   const geo = geoip.lookup(ip);
+//   const country = geo?.country || 'UNKNOWN';
 
+//   if (!ipStats[ip]) ipStats[ip] = { country, totalHits: 0, hits: [] };
+
+//   ipStats[ip].totalHits += 1;
+//   ipStats[ip].hits.push(Date.now());
+
+//   // ---- ghi CSV mỗi request ----
+//   csvStream.write(
+//     `${new Date().toISOString()},` +
+//     `${ip},` +
+//     `${country},` +
+//     `${req.method},` +
+//     `"${req.originalUrl}",` +
+//     `"${req.headers['user-agent']?.replace(/"/g, '""') || ''}"\n`
+//   );
+  
+//   console.log(new Date().toISOString(), ip, country, req.method, req.originalUrl, req.headers['user-agent']?.replace(/"/g, '""') || '')
+  if (req.originalUrl === "/commonData"){
+    trackRequest(req, "WebVisit")
+    global.cnt_Web_Visit_times ++
+    console.log(" + Web_Visit_times =", global.cnt_Web_Visit_times, "; TourGuide_Web_Login_times =", global.cnt_TourGuide_Web_Login_times, "; Guest_Web_Login_times =", global.cnt_Guest_Web_Login_times)
+  }
+  next();
+});
+
+export function trackRequest(req, req_originalUrl) {
+  // 1) Lấy IP dạng thuần
+  const rawIp = req.ip || req.connection?.remoteAddress || '';
+  const ip    = (rawIp.match(/\d+\.\d+\.\d+\.\d+/) || ['unknown'])[0];
+
+  // 2) Tra vị trí
+  const country = geoip.lookup(ip)?.country || 'UNKNOWN';
+
+  // 3) Cập nhật bộ đếm
   if (!ipStats[ip]) ipStats[ip] = { country, totalHits: 0, hits: [] };
-
   ipStats[ip].totalHits += 1;
   ipStats[ip].hits.push(Date.now());
 
-  // ---- ghi CSV mỗi request ----
-  csvStream.write(
+//   let req_originalUrl = "Unknown";
+//   if (req.originalUrl === "/commonData"){
+//     req_originalUrl = "Web_visit"
+//   } else if ("?" in req.originalUrl){
+//     req_originalUrl = "Guest_visit"
+//   }
+  // 4) Ghi ra CSV
+  const line =
     `${new Date().toISOString()},` +
     `${ip},` +
     `${country},` +
     `${req.method},` +
-    `"${req.originalUrl}",` +
-    `"${req.headers['user-agent']?.replace(/"/g, '""') || ''}"\n`
-  );
+    `"${req_originalUrl}",` +
+    `"${(req.headers['user-agent'] || '').replace(/"/g, '""')}"\n`;
 
-  console.log(new Date().toISOString(), ip, country, req.method, req.originalUrl, req.headers['user-agent']?.replace(/"/g, '""') || '')
-  next();
-});
+  csvStream.write(line);
+  console.log("TrackLog =", line)
+}
+
 
 app.use(bodyParser.json());
 app.use(express.static("public"));
@@ -147,6 +190,9 @@ async function loginHandler(req, res) {
                 success_message: "T_G",
                 images: list_qr,
             };
+            trackRequest(req, "TourGuideLogin")
+            global.cnt_TourGuide_Web_Login_times ++
+            console.log(" + Web_Visit_times =", global.cnt_Web_Visit_times, "; TourGuide_Web_Login_times =", global.cnt_TourGuide_Web_Login_times, "; Guest_Web_Login_times =", global.cnt_Guest_Web_Login_times)
             res.json(responseData);
             // console.log("Hello2")
         }
@@ -158,192 +204,204 @@ async function loginHandler(req, res) {
             String(item["Tour_Name"]).trim() === String(password).trim()
             )
         );
-    if (userGroup) {
-        let MenuAndActivitiesData = {};
-        try {
-            MenuAndActivitiesData = readMenuAndActivitiesData(workbook);
-            // console.log('MenuAndActivitiesData:', MenuAndActivitiesData);
-        } catch (err) {
-            console.error(err);
-        }
-        const now = new Date();
-        const currentYear = now.getFullYear();
-        const currentDate = new Date(currentYear, now.getMonth(), now.getDate()); // reset giờ để so sánh ngày
-        const currentHour = now.getHours();
+        if (userGroup) {
+            let MenuAndActivitiesData = {};
+            try {
+                MenuAndActivitiesData = readMenuAndActivitiesData(workbook);
+                // console.log('MenuAndActivitiesData:', MenuAndActivitiesData);
+            } catch (err) {
+                console.error(err);
+            }
+            const now = new Date();
+            const currentYear = now.getFullYear();
+            const currentDate = new Date(currentYear, now.getMonth(), now.getDate()); // reset giờ để so sánh ngày
+            const currentHour = now.getHours();
 
-        // const currentMonth = now.getMonth(); // Lấy tháng (0 - 11)
-        // console.log(currentMonth);
+            // const currentMonth = now.getMonth(); // Lấy tháng (0 - 11)
+            // console.log(currentMonth);
 
-        // let CarbonFootprintIndex_Total = [null, null, null]
-        // // let CarbonFootprintIndex_Total = -1;
-        // try {
-        //     CarbonFootprintIndex_Total = readGeneral2Data(workbook, currentMonth);
-        //     console.log('CarbonFootprintIndex_Total:', CarbonFootprintIndex_Total)
-        //     // console.log('averageDayPerServing:', averageDayPerServing)
-        // } catch (error) {
-        //     console.error('Lỗi đọc file:', error.message);
-        // }
+            // let CarbonFootprintIndex_Total = [null, null, null]
+            // // let CarbonFootprintIndex_Total = -1;
+            // try {
+            //     CarbonFootprintIndex_Total = readGeneral2Data(workbook, currentMonth);
+            //     console.log('CarbonFootprintIndex_Total:', CarbonFootprintIndex_Total)
+            //     // console.log('averageDayPerServing:', averageDayPerServing)
+            // } catch (error) {
+            //     console.error('Lỗi đọc file:', error.message);
+            // }
         
-        let totalUpToNow = 0;
-        let total = 0;
-        let cntUpToNow = 0;
-        let cntTotal = 0;
-        const timetable = userGroup.TimeTable || {};
-        let selectMonth = -1;
-        for (const [dateKey, activities] of Object.entries(timetable)) {
-            const [month, day, yearSuffix] = dateKey.split("/").map(Number);
-            const year = 2000 + yearSuffix;
-            const activityDate = new Date(year, month - 1, day);
-            selectMonth = new Date(year, month-1)
-            // console.log('selectMonth =', selectMonth)
+            let totalUpToNow = 0;
+            let total = 0;
+            let cntUpToNow = 0;
+            let cntTotal = 0;
+            const timetable = userGroup.TimeTable || {};
+            let selectMonth = -1;
+            for (const [dateKey, activities] of Object.entries(timetable)) {
+                const [month, day, yearSuffix] = dateKey.split("/").map(Number);
+                const year = 2000 + yearSuffix;
+                const activityDate = new Date(year, month - 1, day);
+                selectMonth = new Date(year, month-1)
+                // console.log('selectMonth =', selectMonth)
 
-            if (!(activities && Array.isArray(activities))) continue;
+                if (!(activities && Array.isArray(activities))) continue;
 
-            if (activityDate < currentDate) {
-                // Ngày quá khứ → tính toàn bộ 24 giờ
-                for (let i = 0; i < 24; i++) {
-                    const act = activities[i];
-                    cntUpToNow += 1
-                    cntTotal += 1
-                    if (act && MenuAndActivitiesData.hasOwnProperty(act)) {
-                        totalUpToNow += MenuAndActivitiesData[act];
-                        total += MenuAndActivitiesData[act];    
+                if (activityDate < currentDate) {
+                    // Ngày quá khứ → tính toàn bộ 24 giờ
+                    for (let i = 0; i < 24; i++) {
+                        const act = activities[i];
+                        cntUpToNow += 1
+                        cntTotal += 1
+                        if (act && MenuAndActivitiesData.hasOwnProperty(act)) {
+                            totalUpToNow += MenuAndActivitiesData[act];
+                            total += MenuAndActivitiesData[act];    
+                        }
+                    }
+                } else if (activityDate.getTime() === currentDate.getTime()) {
+                // Ngày hiện tại → chỉ tính đến giờ hiện tại
+                    for (let i = 0; i <= currentHour; i++) {
+                        cntUpToNow += 1
+                        cntTotal += 1
+                        const act = activities[i];
+                        if (act && MenuAndActivitiesData.hasOwnProperty(act)) {
+                            totalUpToNow += MenuAndActivitiesData[act];
+                            total += MenuAndActivitiesData[act];
+                        }
+                    }
+                    for (let i = currentHour+1; i < 24; i++) {
+                        const act = activities[i];
+                        cntTotal += 1
+                        if (act && MenuAndActivitiesData.hasOwnProperty(act)) {
+                            total += MenuAndActivitiesData[act];
+                        }
+                    }
+                } else {
+                    for (let i = 0; i < 24; i++) {
+                        const act = activities[i];
+                        cntTotal += 1
+                        if (act && MenuAndActivitiesData.hasOwnProperty(act)) {
+                            total += MenuAndActivitiesData[act];
+                        }
                     }
                 }
-            } else if (activityDate.getTime() === currentDate.getTime()) {
-            // Ngày hiện tại → chỉ tính đến giờ hiện tại
-                for (let i = 0; i <= currentHour; i++) {
-                    cntUpToNow += 1
-                    cntTotal += 1
-                    const act = activities[i];
-                    if (act && MenuAndActivitiesData.hasOwnProperty(act)) {
-                        totalUpToNow += MenuAndActivitiesData[act];
-                        total += MenuAndActivitiesData[act];
-                    }
-                }
-                for (let i = currentHour+1; i < 24; i++) {
-                    const act = activities[i];
-                    cntTotal += 1
-                    if (act && MenuAndActivitiesData.hasOwnProperty(act)) {
-                        total += MenuAndActivitiesData[act];
-                    }
-                }
-            } else {
-                for (let i = 0; i < 24; i++) {
-                    const act = activities[i];
-                    cntTotal += 1
-                    if (act && MenuAndActivitiesData.hasOwnProperty(act)) {
-                        total += MenuAndActivitiesData[act];
-                    }
-                }
+                // Ngày tương lai → bỏ qua
             }
-            // Ngày tương lai → bỏ qua
-        }
-        // Tính số serial date tương ứng với ngày đầu tháng
-        // const baseDate = new Date(Date.UTC(1899, 11, 30)); // Excel base date
-        // const selectSerial = Math.floor((selectMonth - baseDate) / (1000 * 60 * 60 * 24));
-        let CarbonFootprintIndex_Total = [null, null, null]
-        try {
-            CarbonFootprintIndex_Total = readGeneral2Data(workbook, selectMonth);
-            // console.log('CarbonFootprintIndex_Total:', CarbonFootprintIndex_Total)
-            // console.log('averageDayPerServing:', averageDayPerServing)
-        } catch (error) {
-            console.error('Lỗi đọc file:', error.message);
-        }
+            // Tính số serial date tương ứng với ngày đầu tháng
+            // const baseDate = new Date(Date.UTC(1899, 11, 30)); // Excel base date
+            // const selectSerial = Math.floor((selectMonth - baseDate) / (1000 * 60 * 60 * 24));
+            let CarbonFootprintIndex_Total = [null, null, null]
+            try {
+                CarbonFootprintIndex_Total = readGeneral2Data(workbook, selectMonth);
+                // console.log('CarbonFootprintIndex_Total:', CarbonFootprintIndex_Total)
+                // console.log('averageDayPerServing:', averageDayPerServing)
+            } catch (error) {
+                console.error('Lỗi đọc file:', error.message);
+            }
 
-        const number1 = (CarbonFootprintIndex_Total[1] - total)/cntTotal*cntUpToNow + totalUpToNow;
-        let total2 = total / CarbonFootprintIndex_Total[1]*CarbonFootprintIndex_Total[0];
-        let totalUpToNow2 = totalUpToNow / CarbonFootprintIndex_Total[1]*CarbonFootprintIndex_Total[0];
-        const number0 = (CarbonFootprintIndex_Total[0] - total2)/cntTotal*cntUpToNow + totalUpToNow2;
-        // const number0 = (CarbonFootprintIndex_Total[0] - total)/cntTotal*cntUpToNow + totalUpToNow;
-        const day = now.getDate().toString().padStart(2, '0');
-        const month = (now.getMonth() + 1).toString().padStart(2, '0'); // tháng tính từ 0
-        const year = now.getFullYear();
-        const hours = now.getHours().toString().padStart(2, '0');
-        const minutes = now.getMinutes().toString().padStart(2, '0');
-        // await delay(2000);
-        // setTimeout(() => {console.log("Sau 2 giây");}, 2000);
-        // await sleep(1000);
-        const responseData = {
-            success_message: "client",
-            userName: username,
-            message: `As of ${day}/${month}/${year} - ${hours}:${minutes}`,
-            totalOldConsumptionUntilNow: [number0, CarbonFootprintIndex_Total[0]],
-            totalNewConsumptionUntilNow: [number1, CarbonFootprintIndex_Total[1]],
-            gap: [number0 - number1, CarbonFootprintIndex_Total[2]],
-            compare: [(number0 - number1) * 16.6 / 1000, (number0 - number1) * 6.7 / 1000],
-        };
-        // res.json({
-        //     success: true,
-        //     message: `As of ${day}/${month}/${year} - ${hours}:${minutes}`,
-        //     // timetable: userGroup["TimeTable"],
-        //     totalOldConsumptionUntilNow: [number0, CarbonFootprintIndex_Total[0]],
-        //     totalNewConsumptionUntilNow: [number1, CarbonFootprintIndex_Total[1]],
-        //     gap: [number0 - number1, CarbonFootprintIndex_Total[2]],
-        //     compare: [(number0 - number1)*16.6/1000, (number0 - number1)*6.7/1000],
-        // });
-        // console.log(todayKey);
-        // console.log(totalUpToNow);
-        // console.log(total);
-        // console.log(cntUpToNow);
-        // console.log(cntTotal);
-        // console.log(number1);
-        // console.log(number0);
-        // console.log(number0-number1);
+            const number1 = (CarbonFootprintIndex_Total[1] - total)/cntTotal*cntUpToNow + totalUpToNow;
+            let total2 = total / CarbonFootprintIndex_Total[1]*CarbonFootprintIndex_Total[0];
+            let totalUpToNow2 = totalUpToNow / CarbonFootprintIndex_Total[1]*CarbonFootprintIndex_Total[0];
+            const number0 = (CarbonFootprintIndex_Total[0] - total2)/cntTotal*cntUpToNow + totalUpToNow2;
+            // const number0 = (CarbonFootprintIndex_Total[0] - total)/cntTotal*cntUpToNow + totalUpToNow;
+            const day = now.getDate().toString().padStart(2, '0');
+            const month = (now.getMonth() + 1).toString().padStart(2, '0'); // tháng tính từ 0
+            const year = now.getFullYear();
+            const hours = now.getHours().toString().padStart(2, '0');
+            const minutes = now.getMinutes().toString().padStart(2, '0');
+            // await delay(2000);
+            // setTimeout(() => {console.log("Sau 2 giây");}, 2000);
+            // await sleep(1000);
+            const responseData = {
+                success_message: "client",
+                userName: username,
+                message: `As of ${day}/${month}/${year} - ${hours}:${minutes}`,
+                totalOldConsumptionUntilNow: [number0, CarbonFootprintIndex_Total[0]],
+                totalNewConsumptionUntilNow: [number1, CarbonFootprintIndex_Total[1]],
+                gap: [number0 - number1, CarbonFootprintIndex_Total[2]],
+                compare: [(number0 - number1) * 16.6 / 1000, (number0 - number1) * 6.7 / 1000],
+            };
+            // res.json({
+            //     success: true,
+            //     message: `As of ${day}/${month}/${year} - ${hours}:${minutes}`,
+            //     // timetable: userGroup["TimeTable"],
+            //     totalOldConsumptionUntilNow: [number0, CarbonFootprintIndex_Total[0]],
+            //     totalNewConsumptionUntilNow: [number1, CarbonFootprintIndex_Total[1]],
+            //     gap: [number0 - number1, CarbonFootprintIndex_Total[2]],
+            //     compare: [(number0 - number1)*16.6/1000, (number0 - number1)*6.7/1000],
+            // });
+            // console.log(todayKey);
+            // console.log(totalUpToNow);
+            // console.log(total);
+            // console.log(cntUpToNow);
+            // console.log(cntTotal);
+            // console.log(number1);
+            // console.log(number0);
+            // console.log(number0-number1);
 
-        if (number0 === CarbonFootprintIndex_Total[0] && number1 === CarbonFootprintIndex_Total[1] && number0 - number1 === CarbonFootprintIndex_Total[2]){
-            responseData.certificateUrl = `./public/certificates/${encodeURIComponent(username)}.pdf`;
-            responseData.certificateMessage1 = `✅ Congratulate! You have finished the tour with GGGG 🥳 Below is your certificate`
-            responseData.certificateMessage2 = `👏 Thank you for being with us. We look forward to seeing you again!`
-            if (!fs.existsSync(responseData.certificateUrl)) {
-                const name = username; // hoặc tên thật của người dùng
-                const existingPdfBytes = fs.readFileSync("./data/certificate-template.pdf");
+            if (number0 === CarbonFootprintIndex_Total[0] && number1 === CarbonFootprintIndex_Total[1] && number0 - number1 === CarbonFootprintIndex_Total[2]){
+                responseData.certificateUrl = `./public/certificates/${encodeURIComponent(username)}.pdf`;
+                responseData.certificateMessage1 = `✅ Congratulate! You have finished the tour with GGGG 🥳 Below is your certificate`
+                responseData.certificateMessage2 = `👏 Thank you for being with us. We look forward to seeing you again!`
+                if (!fs.existsSync(responseData.certificateUrl)) {
+                    const name = username; // hoặc tên thật của người dùng
+                    const existingPdfBytes = fs.readFileSync("./data/certificate-template.pdf");
                 
-                const pdfDoc = await PDFDocument.load(existingPdfBytes);
-                pdfDoc.registerFontkit(fontkit);
-                const page = pdfDoc.getPages()[0];
-                // const font = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
-                const fontBytes = fs.readFileSync(path.join(__dirname, 'fonts', 'arial.ttf'));
-                const customFont = await pdfDoc.embedFont(fontBytes);
-                const textWidth = customFont.widthOfTextAtSize(name, 56);
-                const { width } = page.getSize();
-                const x = (width - textWidth) / 2;
-                page.drawText(name, {
-                    x: x,
-                    y: 300,
-                    size: 56,
-                    font: customFont,
-                    color: rgb(1, 1, 1),
-                });
-                let contentToPdf = `has finished the green tour and`
-                page.drawText(contentToPdf, {
-                    x: 150,
-                    y: 240,
-                    size: 30,
-                    font: customFont,
-                    color: rgb(1, 1, 1),
-                });
-                contentToPdf = `successfully saved ${number0 - number1} grams Carbon dioxide.`
-                page.drawText(contentToPdf, {
-                    x: 150,
-                    y: 200,
-                    size: 30,
-                    font: customFont,
-                    color: rgb(1, 1, 1),
-                });
-                const pdfBytes = await pdfDoc.save();
-                // 2. Lưu file ra thư mục công khai để client có thể tải
-                const outputPath = path.join(__dirname, "public", "certificates", `${username}.pdf`);
-                fs.writeFileSync(outputPath, pdfBytes);
+                    const pdfDoc = await PDFDocument.load(existingPdfBytes);
+                    pdfDoc.registerFontkit(fontkit);
+                    const page = pdfDoc.getPages()[0];
+                    // const font = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+                    const fontBytes = fs.readFileSync(path.join(__dirname, 'fonts', 'arial.ttf'));
+                    const customFont = await pdfDoc.embedFont(fontBytes);
+                    const textWidth = customFont.widthOfTextAtSize(name, 56);
+                    const { width } = page.getSize();
+                    const x = (width - textWidth) / 2;
+                    page.drawText(name, {
+                        x: x,
+                        y: 300,
+                        size: 56,
+                        font: customFont,
+                        color: rgb(1, 1, 1),
+                    });
+                    let contentToPdf = `has finished the green tour and`
+                    page.drawText(contentToPdf, {
+                        x: 150,
+                        y: 240,
+                        size: 30,
+                        font: customFont,
+                        color: rgb(1, 1, 1),
+                    });
+                    contentToPdf = `successfully saved ${number0 - number1} grams Carbon dioxide.`
+                    page.drawText(contentToPdf, {
+                        x: 150,
+                        y: 200,
+                        size: 30,
+                        font: customFont,
+                        color: rgb(1, 1, 1),
+                    });
+                    const pdfBytes = await pdfDoc.save();
+                    // 2. Lưu file ra thư mục công khai để client có thể tải
+                    const outputPath = path.join(__dirname, "public", "certificates", `${username}.pdf`);
+                    fs.writeFileSync(outputPath, pdfBytes);
+                }
             }
+            // trackRequest(req, "Guest_Login")
+            let logTrack = ""
+            if ('LogTrack' in req){
+                logTrack = req.LogTrack
+            } else{
+                logTrack = "GuestLogin_"+String(username)+"_Pass_"+String(password);
+            }
+            console.log("*****logTrack =", logTrack)
+            trackRequest(req, logTrack)
+            global.cnt_Guest_Web_Login_times ++
+            // console.log(" + cnt_Web_Visit_times =", cnt_Web_Visit_times, "; cnt_Web_Login_times =", cnt_Web_Login_times)
+            console.log(" + Web_Visit_times =", global.cnt_Web_Visit_times, "; TourGuide_Web_Login_times =", global.cnt_TourGuide_Web_Login_times, "; Guest_Web_Login_times =", global.cnt_Guest_Web_Login_times)
+            return res.json(responseData);
+        } else {
+            res.status(401).json({
+                success: false,
+                message: "Tài khoản hoặc mật khẩu không đúng"
+            });
         }
-        return res.json(responseData);
-    } else {
-        res.status(401).json({
-            success: false,
-            message: "Tài khoản hoặc mật khẩu không đúng"
-        });
-    }
     }
 }
 // });
@@ -365,14 +423,18 @@ app.post('/Alogin', async (req, res) => {
             // console.log("HelloK 1")
             // const Tour_Guide_Name = decoded.custom.slice(words[0])
             const password = words[1]
-            // console.log("HelloK 2")
+            console.log("HelloK 2")
             const username = words[2]
             // const { username, password } = req.body;
             // req.jwt = { Tour_Guide_Name, Tour_Name, username, decoded };
-            // console.log("HelloK 4")
+            console.log("HelloK 4")
             req.body = { username, password };
-            // console.log("HelloK 5", username, password)
+            console.log("HelloK 5", username, password)
             // res.json(loginHandler(req, res));
+            req.LogTrack = "GuestLogin_"+String(username)+"_TourName_"+String(password);
+            // trackRequest(req, "GuestLogin_"+String(username)+"_P_"+String(password))
+            // global.cnt_Guest_Web_Login_times ++
+            // console.log(" + Web_Visit_times =", global.cnt_Web_Visit_times, "; TourGuide_Web_Login_times =", global.cnt_TourGuide_Web_Login_times, "; Guest_Web_Login_times =", global.cnt_Guest_Web_Login_times)
             return loginHandler(req, res);
     } catch (err) {
         // return res.status(401).send('Token không hợp lệ');
@@ -401,7 +463,7 @@ app.get("/commonData", async (req, res) => {
 //   console.log("Server đang chạy tại http://localhost:3000");
 // });
 
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
 });
 
