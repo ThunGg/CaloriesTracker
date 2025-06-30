@@ -92,7 +92,7 @@ export function readGeneralData(workbook) {
   // findFarthestLessThanLast(plastic)
   // findFarthestLessThanLast(waste)
 
-  console.log('Carbon in origin =', carbon)
+  // console.log('Carbon in origin =', carbon)
 
   let General1_carbon = calculateSum(carbon)
   let General1_plastic = findFarthestMoreThanLast(plastic)

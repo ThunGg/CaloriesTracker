@@ -15,19 +15,19 @@ export function readGeneral2Data(workbook, selectSerial) {
   // const startIdx = 3;
   // const endIdx = rows.findIndex(r => r[0] === 'December');
   const column0Count = rows.filter(row => row[0] != null && row[0] !== '').length;
-  console.log('column0Count =',column0Count)
+  // console.log('column0Count =',column0Count)
   let selectTime =-1;
   for (let r = 2; r <= column0Count + 1; r++) {
     const cell = sheet[XLSX.utils.encode_cell({ c: 0, r: r })];
-    console.log('cell =', cell)
+    // console.log('cell =', cell)
     if (!cell || cell.v === undefined || cell.v === null || String(cell.v).trim() === '') break;
     const cellDate = new Date((cell.v - 25569) * 86400 * 1000);
     if (cellDate.getFullYear() === selectSerial.getFullYear() && cellDate.getMonth() === selectSerial.getMonth()) selectTime = r-1;
     // if cell.v === 
-    console.log('selectTime=', selectTime)
+    // console.log('selectTime=', selectTime)
     // v_Month = new Date(year, month)
   }
-  console.log('*selectTime=', selectTime)
+  // console.log('*selectTime=', selectTime)
   // if (startIdx === -1 || endIdx === -1) {
   //   throw new Error('Could not find January and/or December rows');
   // }
