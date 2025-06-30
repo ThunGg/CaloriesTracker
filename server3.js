@@ -45,6 +45,7 @@ function sleep(ms) {
 //   console.log("token from client = ", token);              // "abczyx"
 // });
 
+const PORT = process.env.PORT || 3000;
 
 // app.post("/login", async (req, res) => {
 async function loginHandler(req, res) {
