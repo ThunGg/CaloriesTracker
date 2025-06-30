@@ -260,7 +260,7 @@ async function loginHandler(req, res) {
                 pdfDoc.registerFontkit(fontkit);
                 const page = pdfDoc.getPages()[0];
                 // const font = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
-                const fontBytes = fs.readFileSync(path.join(__dirname, 'fonts', 'Arial.ttf'));
+                const fontBytes = fs.readFileSync(path.join(__dirname, 'fonts', 'arial.ttf'));
                 const customFont = await pdfDoc.embedFont(fontBytes);
                 const textWidth = customFont.widthOfTextAtSize(name, 56);
                 const { width } = page.getSize();
