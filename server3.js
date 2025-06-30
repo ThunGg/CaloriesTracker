@@ -89,7 +89,7 @@ async function loginHandler(req, res) {
                 for (const Customer_Name of TourGuide_Tour_Inform_v["Pax_Account"]){
                     let token_string = String(username).trim() + " " + Tour_Name_INP + " " + Customer_Name;
                     const key = "emic_key"
-                    const url = "http://localhost:3000/?token=" + jwt.sign({ custom: token_string }, key);
+                    const url = "https://carbondioxidetracker.onrender.com/?token=" + jwt.sign({ custom: token_string }, key);
                     console.log("token =", url)
                     const qrData  = await QRCode.toDataURL(url, {
                         margin: 1,
