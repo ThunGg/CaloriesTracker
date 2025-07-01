@@ -9,7 +9,7 @@
     /* —— RESET GỌN ———————————————————— */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-    body { font-family: Arial; padding: 10px; color: #008000; font-size: 20px; background-color: #ffffff; padding-bottom: 56px;}
+    body { font-family: Arial; padding: 10px; color: #fff; font-size: 20px; background-color: #7e6a56; padding-bottom: 112px;}
     h2 {margin-top: 0;}
     #result { margin-top: 20px; padding: 20px; border: 10px solid #ccc; display: none; }
     .error { color: red; }
@@ -28,15 +28,15 @@
       top: 0; left: 0;
       width: 100%;
       height: 100px;             /* cao 64 px */
-      background: #ffffffd9;    /* trắng hơi mờ để thấy nội dung lướt bên dưới */
+      background: #7eb39c; /*ffffffd9;    /* trắng hơi mờ để thấy nội dung lướt bên dưới */
       backdrop-filter: blur(6px);
-      border-bottom: 1px solid #008000; /*e5e7eb;*/
+      border-bottom: 0px solid #fff; /*e5e7eb;*/
       display: flex;
       align-items: center;
       justify-content: space-between;
       padding: 0 24px;
       z-index: 1000;            /* nằm trên mọi thứ khác */
-      color: #008000;
+      color: #fff;
     }
     /* —— LOGO ———————————————— */
     /* .navbar .logo {
@@ -54,7 +54,7 @@
     .nav-links a {
       text-decoration: none;
       font-size: 23px;
-      color: #008000;
+      color: #fff;
       font-weight: 500;
       position: relative;
       padding: 4px 0;
@@ -65,7 +65,7 @@
       position: absolute;
       left: 0; bottom: -4px;
       width: 0; height: 2px;
-      background: #008000;
+      background: #fff;
       transition: width 0.25s;
     }
 
@@ -84,8 +84,8 @@
     font-weight:600;
     padding:10px 32px;
     color:#fff;
-    background:#008000;                /* xanh lá */
-    border:2px solid #008000;
+    background:#60E9D9;                /* xanh lá */
+    border:2px solid #60E9D9;
     border-radius:6px;
     cursor:pointer;
     overflow:hidden;                   /* ẩn ripple tràn */
@@ -137,7 +137,7 @@
 
   input[type="text"],
   input[type="password"] {
-    border: 2px solid #008000;   /* xanh lá đậm */
+    border: 2px solid #fff;   /* xanh lá đậm */
     border-radius: 4px;
     padding: 6px 8px;
     font-size: 20px;
@@ -145,9 +145,9 @@
 
   input[type="text"]:focus,
   input[type="password"]:focus {
-    border-color: #00c060;                    /* xanh sáng hơn */
+    border-color: #60E9D9;                    /* xanh sáng hơn */
     outline: none;                            /* bỏ viền mặc định */
-    box-shadow: 0 0 0 2px rgba(0,192,96,.25); /* viền phát sáng nhẹ */
+    box-shadow: 0 0 0 2px rgba(96,233,217,.25); /* #FFD93D; /*rgba(0,192,96,.25); /* viền phát sáng nhẹ */
   }
 
   /* 1) Footer bar cố định */
@@ -155,8 +155,8 @@
     position: fixed;            /* dính đáy màn hình */
     bottom: 0; left: 0;
     width: 100%;
-    height: 56px;               /* chiều cao footer */
-    background: #008000;        /* màu nền tùy ý */
+    height: 112px;               /* chiều cao footer */
+    background: #7A542E;        /* màu nền tùy ý */
     color: #fff;
     display: flex;
     align-items: center;        /* căn giữa theo chiều dọc */
@@ -246,7 +246,7 @@
     }
 
     /* link trong popover */
-    .info-pop a{ color:#008000; font-weight:500 }
+    .info-pop a{ color:#03CEA4; font-weight:500 }
 
     /* khi bật */
     .info-pop.show{ display:block; }
@@ -452,7 +452,7 @@
     async function showResult(res, data, username = '') {
       // Here 1
       result.style.display = "block";
-      console.log("Hello Okeee0")
+      // console.log("Hello Okeee0")
 
       if (res.ok && String(data.success_message) === "T_G") {
         // const images = data.responseData.images || [];
@@ -491,7 +491,7 @@
         // console.log("Hello Okeee2")
       }else
       if (res.ok && data.success_message == "client") {
-        console.log("Hello Okeee2")
+        // console.log("Hello Okeee2")
         const [oldVal, oldTotal] = data.totalOldConsumptionUntilNow;
         const [newVal, newTotal] = data.totalNewConsumptionUntilNow;
         const [gapVal, gapTotal] = data.gap;
@@ -574,6 +574,7 @@
   #carbonBarChart {
     max-width: 1000px;  /* hoặc 200px */
     max-height: 280px;
+    background-color: #fff;
   }
   </style>
 <canvas id="carbonBarChart"></canvas>

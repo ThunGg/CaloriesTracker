@@ -62,7 +62,7 @@ app.use((req, res, next) => {
   
 //   console.log(new Date().toISOString(), ip, country, req.method, req.originalUrl, req.headers['user-agent']?.replace(/"/g, '""') || '')
   if (req.originalUrl === "/commonData"){
-    trackRequest(req, "WebVisit")
+    // trackRequest(req, "WebVisit")
     global.cnt_Web_Visit_times ++
     console.log(" + Web_Visit_times =", global.cnt_Web_Visit_times, "; TourGuide_Web_Login_times =", global.cnt_TourGuide_Web_Login_times, "; Guest_Web_Login_times =", global.cnt_Guest_Web_Login_times)
   }
@@ -190,7 +190,7 @@ async function loginHandler(req, res) {
                 success_message: "T_G",
                 images: list_qr,
             };
-            trackRequest(req, "TourGuideLogin")
+            // trackRequest(req, "TourGuideLogin")
             global.cnt_TourGuide_Web_Login_times ++
             console.log(" + Web_Visit_times =", global.cnt_Web_Visit_times, "; TourGuide_Web_Login_times =", global.cnt_TourGuide_Web_Login_times, "; Guest_Web_Login_times =", global.cnt_Guest_Web_Login_times)
             res.json(responseData);
@@ -383,7 +383,7 @@ async function loginHandler(req, res) {
                     fs.writeFileSync(outputPath, pdfBytes);
                 }
             }
-            // trackRequest(req, "Guest_Login")
+            
             let logTrack = ""
             if ('LogTrack' in req){
                 logTrack = req.LogTrack
@@ -391,7 +391,7 @@ async function loginHandler(req, res) {
                 logTrack = "GuestLogin_"+String(username)+"_Pss_"+String(password);
             }
             console.log("*****logTrack =", logTrack)
-            trackRequest(req, logTrack)
+            // trackRequest(req, logTrack)
             global.cnt_Guest_Web_Login_times ++
             // console.log(" + cnt_Web_Visit_times =", cnt_Web_Visit_times, "; cnt_Web_Login_times =", cnt_Web_Login_times)
             console.log(" + Web_Visit_times =", global.cnt_Web_Visit_times, "; TourGuide_Web_Login_times =", global.cnt_TourGuide_Web_Login_times, "; Guest_Web_Login_times =", global.cnt_Guest_Web_Login_times)
@@ -432,9 +432,6 @@ app.post('/Alogin', async (req, res) => {
             console.log("HelloK 5", username, password)
             // res.json(loginHandler(req, res));
             req.LogTrack = "GuestLogin_"+String(username)+"_TourName_"+String(password);
-            // trackRequest(req, "GuestLogin_"+String(username)+"_P_"+String(password))
-            // global.cnt_Guest_Web_Login_times ++
-            // console.log(" + Web_Visit_times =", global.cnt_Web_Visit_times, "; TourGuide_Web_Login_times =", global.cnt_TourGuide_Web_Login_times, "; Guest_Web_Login_times =", global.cnt_Guest_Web_Login_times)
             return loginHandler(req, res);
     } catch (err) {
         // return res.status(401).send('Token không hợp lệ');
