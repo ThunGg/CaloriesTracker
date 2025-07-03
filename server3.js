@@ -116,25 +116,56 @@ app.use('/public', express.static(path.join(__dirname, 'public')));
 app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "views"));
 import XLSX from 'xlsx';
-let workbook = XLSX.readFile('./data/My_Proceeded_Data.xlsx');
 
-import chokidar from 'chokidar';
+// let workbook = XLSX.readFile('./data/My_Proceeded_Data.xlsx');
 
-chokidar.watch('./data/My_Proceeded_Data.xlsx', {   // hoặc đường dẫn tuyệt đối
-    persistent: true,
-    awaitWriteFinish: {   // chờ Excel ghi xong để tránh đọc file nửa chừng
-      stabilityThreshold: 1000,
-      pollInterval: 100
-    }
-  })
-  .on('change', (path) => {
-    console.log(`[${new Date().toISOString()}] ${path} changed -> reload`);
-    try {
-    //   cache = loadData(path);          // nạp lại vào biến cache
-    workbook = XLSX.readFile('./data/My_Proceeded_Data.xlsx');
-    } catch (err) {
-      console.error('Lỗi đọc Excel:', err);
-    }
+const GUSER   = process.env.GITHUB_USER || '<ThunGg>';
+const GREPO   = process.env.GITHUB_REPO || '<CaloriesTracker>';
+const GBRANCH = 'main';
+const RAW_URL = `https://raw.githubusercontent.com/${GUSER}/${GREPO}/${GBRANCH}/data/My_Proceeded_Data.xlsx`;
+const WEBHOOK_SECRET = 'supersecretET_7_2025';
+const EXCEL_PATH = path.resolve('./data/My_Proceeded_Data.xlsx');   // đường dẫn cố định
+/* ---------- Middleware đọc raw body để verify HMAC ---------- */
+app.use(express.json({
+  verify: (req, _res, buf) => { req.rawBody = buf; }
+}));
+
+let workbook = null;
+/* --- Hàm tải file .xlsx rồi nạp workbook --- */
+async function fetchAndLoadWorkbook () {
+  const resp = await axios.get(RAW_URL, { responseType: 'arraybuffer' });
+  fs.mkdirSync(path.dirname(EXCEL_PATH), { recursive: true });
+  fs.writeFileSync(EXCEL_PATH, resp.data);
+  workbook = XLSX.readFile(EXCEL_PATH);        // chỉ giữ workbook
+  console.log(`-> Reloaded workbook`);
+}
+
+await fetchAndLoadWorkbook();
+
+/* ---------- Endpoint POST /reload (GitHub Webhook gọi) ---------- */
+app.post('/reload', async (req, res) => {
+  /* 1. Xác thực HMAC */
+  const sig = req.headers['x-hub-signature-256'] || '';
+  const mac = crypto.createHmac('sha256', WEBHOOK_SECRET)
+                    .update(req.rawBody).digest('hex');
+  if (!crypto.timingSafeEqual(Buffer.from(`sha256=${mac}`), Buffer.from(sig)))
+    return res.status(403).send('Invalid signature');
+
+  /* 2. Kiểm tra commit có chạm tới .xlsx không */
+  const touched = (req.body.commits || []).some(c =>
+    [...c.added, ...c.modified].some(f =>
+      f.startsWith('data/') && f.endsWith('.xlsx'))
+  );
+  if (!touched) return res.json({ skipped: true });
+
+  /* 3. Nạp lại workbook */
+  try {
+    await fetchAndLoadWorkbook();
+    res.json({ reloaded: true, sheets: workbook.SheetNames });
+  } catch (e) {
+    console.error(e);
+    res.status(500).send('Reload failed');
+  }
 });
 
 
