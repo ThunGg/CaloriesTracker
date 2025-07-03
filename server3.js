@@ -286,7 +286,7 @@ async function loginHandler(req, res) {
             const now = new Date();
             const currentYear = now.getFullYear();
             const currentDate = new Date(currentYear, now.getMonth(), now.getDate()); // reset giờ để so sánh ngày
-            const currentHour = now.getHours();
+            const currentHour = now.getHours() + 7;
 
             // const currentMonth = now.getMonth(); // Lấy tháng (0 - 11)
             // console.log(currentMonth);
@@ -309,7 +309,7 @@ async function loginHandler(req, res) {
             let selectMonth = -1;
             // console.log("Object.entries(timetable) =", Object.entries(timetable))
             for (const [dateKey, activities] of Object.entries(timetable)) {
-                const [day, month, yearSuffix] = dateKey.split("/").map(Number);
+                const [month, day, yearSuffix] = dateKey.split("/").map(Number);
                 // console.log('month =', month, 'day =', day, 'yearSuffix =', yearSuffix)
                 const year = 2000 + yearSuffix;
                 const activityDate = new Date(year, month - 1, day);
@@ -379,7 +379,7 @@ async function loginHandler(req, res) {
             const day = now.getDate().toString().padStart(2, '0');
             const month = (now.getMonth() + 1).toString().padStart(2, '0'); // tháng tính từ 0
             const year = now.getFullYear();
-            const hours = now.getHours().toString().padStart(2, '0');
+            const hours = now.getHours().toString().padStart(2, '0') + 7;
             const minutes = now.getMinutes().toString().padStart(2, '0');
             // await delay(2000);
             // setTimeout(() => {console.log("Sau 2 giây");}, 2000);
