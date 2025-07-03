@@ -82,8 +82,14 @@ export function readGeneralData(workbook) {
 
   // Food waste: Month ở H, giá trị ở I
   for (let r = wasteFrame.start; r <= wasteFrame.end; r++) {
-    const cell = sheet[`I${r}`];
-    waste.push(cell ? cell.v : null);
+    const cI = sheet[`I${r}`];
+    const cJ = sheet[`J${r}`];
+    const vI = cI ? +cI.v : null;
+    const vJ = cJ ? +cJ.v : null;
+    if (vI !== null && vJ !== null && vI !== 0) {
+      waste.push(vJ / vI);
+    }
+    // waste.push(cell ? cell.v : null);
   }
 
   // console.log('Col1 =', calculateMean(carbon))
