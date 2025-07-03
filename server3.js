@@ -289,7 +289,7 @@ async function loginHandler(req, res) {
             const currentHour = now.getHours() + 7;
 
             // const currentMonth = now.getMonth(); // Lấy tháng (0 - 11)
-            // console.log(currentMonth);
+            // console.log("currentHour1 =", currentHour);
 
             // let CarbonFootprintIndex_Total = [null, null, null]
             // // let CarbonFootprintIndex_Total = -1;
@@ -379,7 +379,8 @@ async function loginHandler(req, res) {
             const day = now.getDate().toString().padStart(2, '0');
             const month = (now.getMonth() + 1).toString().padStart(2, '0'); // tháng tính từ 0
             const year = now.getFullYear();
-            const hours = now.getHours().toString().padStart(2, '0') + 7;
+            const hours = (now.getHours()+7).toString().padStart(2, '0');
+            // console.log("currentHour2 =", hours);
             const minutes = now.getMinutes().toString().padStart(2, '0');
             // await delay(2000);
             // setTimeout(() => {console.log("Sau 2 giây");}, 2000);
@@ -475,7 +476,7 @@ async function loginHandler(req, res) {
                     //     color: rgb(1, 1, 1),
                     // });
                     
-                    let contentToPdf = `${number0 - number1}`
+                    let contentToPdf = (number0 - number1).toFixed(2)
                     textWidth = customFont.widthOfTextAtSize(contentToPdf, 23);
                     x = (width - textWidth) / 2;
                     page.drawText(contentToPdf, {
