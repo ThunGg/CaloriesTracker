@@ -8,8 +8,100 @@
   <style>
     /* —— RESET GỌN ———————————————————— */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root{
+      --paper-base:#d3b38d;   /* màu giấy kraft gốc – đổi tuỳ ý */
+      --noise-opacity:.99;    /* độ đậm hạt */
+      --noise-size:400px;     /* kích cỡ tile noise */
+    }
+    body { font-family: Arial; padding: 10px; color: #111; font-size: 20px; padding-bottom: 112px;
+      background:var(--paper-base);
+    }
+    /* Lớp hạt noise cực mịn */
+    body::before{
+      content:"";
+      position:fixed; inset:0;
+      pointer-events:none;
+      z-index:-1;
+      opacity:var(--noise-opacity);
+      mix-blend-mode: overlay;
+      /* background-image:url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20width%3D%27100%25%27%20height%3D%27100%25%27%3E%3Cfilter%20id%3D%27n%27%20x%3D%270%27%20y%3D%270%27%20width%3D%27100%25%27%20height%3D%27100%25%27%3E%3CfeTurbulence%20type%3D%27fractalNoise%27%20baseFrequency%3D%270.8%27%20numOctaves%3D%275%27%20seed%3D%271234%27/%3E%3C/filter%3E%3Crect%20width%3D%27100%25%27%20height%3D%27100%25%27%20filter%3D%27url(%23n)%27%20fill%3D%27white%27/%3E%3C/svg%3E"); */
+      /* background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100%25' height='100%25'%3E%3Cfilter id='n' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='5' seed='1234'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' fill='black'/%3E%3C/svg%3E"); */
+      background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100%25' height='100%25'%3E%3Cfilter id='n' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='5' seed='4321'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' fill='black'/%3E%3C/svg%3E");
+      background-size:var(--noise-size);
+      background-repeat:repeat;
+    }
 
-    body { font-family: Arial; padding: 10px; color: #fff; font-size: 20px; background-color: #7e6a56; padding-bottom: 112px;}
+    :root{
+    /* --- thông số tuỳ chỉnh --- */
+      --ink-base:#8dc63f;       /* màu mực gốc */
+      --ink-noise-size:200px;   /* tile noise nhỏ = hạt mịn */
+      --ink-noise-opacity:1;  /* ↑ để hạt rõ hơn, ↓ để mờ hơn */
+    }
+
+    .noise-ink{
+      display:flex;
+      gap:50px;
+    }
+
+    /* ---------- CHỮ “NHIỄU” (mực xanh) --------------- */
+    .ink-text{
+      position:relative;
+      font-weight:700;
+      color:var(--ink-base);                /* fallback cũ */
+
+      background:
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100%25' height='100%25'%3E%3Cfilter id='n' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.1' numOctaves='4' seed='9876'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' fill='white'/%3E%3C/svg%3E")
+          center/var(--ink-noise-size) repeat,
+        var(--ink-base);
+      background-blend-mode:overlay,normal;
+      opacity:var(--ink-noise-opacity);
+
+      -webkit-background-clip:text;
+              background-clip:text;
+      -webkit-text-fill-color:transparent;
+              text-fill-color:transparent;
+
+      text-decoration:none;                /* bỏ gạch dưới mặc định */
+    }
+
+    /* ---------- VẠCH DƯỚI “NHIỄU” -------------------- */
+    .ink-underline::after{
+      content:"";
+      position:absolute;
+      left:0; bottom:-2px;
+      width:100%; height:2px;
+
+      background:
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100%25' height='100%25'%3E%3Cfilter id='n' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.1' numOctaves='4' seed='9876'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' fill='white'/%3E%3C/svg%3E")
+          center/var(--ink-noise-size) repeat,
+        var(--ink-base);
+      background-blend-mode:overlay,normal;
+      opacity:var(--ink-noise-opacity);
+
+      transform-origin:left;
+      transform:scaleX(0);
+      transition:transform .25s ease-in-out;
+      pointer-events:none;
+    }
+
+    /* 👉 hiện vạch khi HOVER hoặc FOCUS (tab) */
+    .ink-underline:hover::after,
+    .ink-underline:focus-visible::after{
+      transform:scaleX(1);
+    }
+
+    /* ❌ ẩn vạch trong lúc đang nhấn */
+    .ink-underline:active::after{
+      transform:scaleX(0);
+    }
+
+    /* ---------- (tùy chọn) highlight khi bôi chọn -------- */
+    .ink-text::selection{
+      color:#fff;
+      background:#2d4;
+    }
+
+
     h2 {margin-top: 0;}
     #result { margin-top: 20px; padding: 20px; border: 10px solid #ccc; display: none; }
     .error { color: red; }
@@ -28,7 +120,7 @@
       top: 0; left: 0;
       width: 100%;
       height: 100px;             /* cao 64 px */
-      background: #7eb39c; /*ffffffd9;    /* trắng hơi mờ để thấy nội dung lướt bên dưới */
+      background: #000; /*7eb39c; /*ffffffd9;    /* trắng hơi mờ để thấy nội dung lướt bên dưới */
       backdrop-filter: blur(6px);
       border-bottom: 0px solid #fff; /*e5e7eb;*/
       display: flex;
@@ -37,6 +129,7 @@
       padding: 0 24px;
       z-index: 1000;            /* nằm trên mọi thứ khác */
       color: #fff;
+      font-size: 26px;
     }
     /* —— LOGO ———————————————— */
     /* .navbar .logo {
@@ -84,9 +177,9 @@
     font-weight:600;
     padding:10px 32px;
     color:#fff;
-    background:#60E9D9;                /* xanh lá */
-    border:2px solid #60E9D9;
-    border-radius:6px;
+    background:#8dc63f;                /* xanh lá 60E9D9 */ 
+    border:2px solid #8dc63f;
+    border-radius:8px;
     cursor:pointer;
     overflow:hidden;                   /* ẩn ripple tràn */
     transition:
@@ -138,16 +231,16 @@
   input[type="text"],
   input[type="password"] {
     border: 2px solid #fff;   /* xanh lá đậm */
-    border-radius: 4px;
+    border-radius: 8px;
     padding: 6px 8px;
     font-size: 20px;
   }
 
   input[type="text"]:focus,
   input[type="password"]:focus {
-    border-color: #60E9D9;                    /* xanh sáng hơn */
+    border-color: #8dc63f;                    /* xanh sáng hơn */
     outline: none;                            /* bỏ viền mặc định */
-    box-shadow: 0 0 0 2px rgba(96,233,217,.25); /* #FFD93D; /*rgba(0,192,96,.25); /* viền phát sáng nhẹ */
+    box-shadow: 0 0 0 2px rgba(141,198,63,.8); /* #FFD93D; /*rgba(0,192,96,.25); /* viền phát sáng nhẹ */
   }
 
   /* 1) Footer bar cố định */
@@ -156,8 +249,9 @@
     bottom: 0; left: 0;
     width: 100%;
     height: 112px;               /* chiều cao footer */
-    background: #7A542E;        /* màu nền tùy ý */
-    color: #fff;
+    background: #111; /*7A542E;        /* màu nền tùy ý */
+    border-top: 3px solid #8dc63f;
+    color: #d3b38d;
     display: flex;
     align-items: center;        /* căn giữa theo chiều dọc */
     justify-content: center;    /* căn giữa ngang */
@@ -167,7 +261,7 @@
 
     /* 3) Link bên trong footer */
     .site-footer a{
-      color: #fff;
+      color: #d3b38d;
       text-decoration: underline;
       margin: 0 6px;
       font-weight: 500;
@@ -215,12 +309,12 @@
       right: 0;        /* JS sẽ cập nhật sang vị trí nút */
       width: 500px;
       max-width:500px;
-      background:#fff;
-      color:#111;
-      border:1px solid #ccc;
+      background:#111;
+      color:#d3b38d;
+      border:0px solid #ccc;
       border-radius:8px;
       padding:16px;
-      box-shadow:0 6px 18px rgba(0,0,0,.15);
+      /* box-shadow:0 6px 18px rgba(0,0,0,.15); */
       display:none;                /* ẩn mặc định */
       z-index:1500;                /* cao hơn navbar */
       font-size:16px;
@@ -228,14 +322,15 @@
     }
 
     /* mũi tam giác nhỏ */
-    .info-pop::before{
+    /*.info-pop::before{
       content:"";
       position:absolute;
-      top:-8px;                   /* nằm trên đỉnh hộp */
-      left:32px;                  /* JS sẽ canh chính xác theo nút */
+      top:-8px;                   /* nằm trên đỉnh hộp 
+      left:32px;                  /* JS sẽ canh chính xác theo nút 
       border:8px solid transparent;
       border-bottom-color:#ccc;
     }
+
     .info-pop::after{
       content:"";
       position:absolute;
@@ -243,10 +338,10 @@
       left:32px;
       border:7px solid transparent;
       border-bottom-color:#fff;
-    }
+    }*/
 
     /* link trong popover */
-    .info-pop a{ color:#03CEA4; font-weight:500 }
+    .info-pop a{ color:#fff; font-weight:700 }
 
     /* khi bật */
     .info-pop.show{ display:block; }
@@ -260,21 +355,23 @@
     <a href="https://emictravel.com/" class="logo-img" target="_blank">
     <img src="/Emic_logo.png" alt="EMIC Logo" class="logo-img">
     </a>
+
     <!-- <a href="#" class="tagline" onclick="location.reload()">Carbon dioxide Tracker</a> -->
-    <nav class="nav-links">
+    <!-- class="ink-text ink-underline" -->
+    <nav class="noise-ink">
       <!-- <a href="#" class="tagline" onclick="location.reload()">Carbon dioxide Tracker</a> -->
-      <a href="/" class="tagline">Carbon dioxide Tracker</a>
+      <a href="/" class="ink-text ink-underline">Carbon dioxide Tracker</a>
       <!-- <a href="#info">Information & Privacy</a> -->
-      <a href="#info" id="info-btn">Information &amp; Privacy</a>
-      <a href="#contact" id="contact-btn">Contact</a>
+      <a href="#info" id="info-btn" class="ink-text ink-underline">Information &amp; Privacy</a>
+      <a href="#contact" id="contact-btn" class="ink-text ink-underline">Contact</a>
       <!-- <a id="contact-btn">Contact</a> -->
     </nav>
     
     <div id="info-pop" class="info-pop">
       <h4>Information &amp; Privacy</h4>
       <p>• This web is a part of <a href="https://emictravel.com/" target="_blank">Emic Travel Co.</a>.</p>
-      <p>• Trang web chỉ lưu dữ liệu CO₂ cục bộ.</p>
-      <p>• Mọi thao tác của bạn không được gửi ra ngoài máy chủ khác.</p>
+      <p>• This web only stores CO₂ data locally.</p>
+      <p>• Your operations are protected and not sent out to other servers.</p>
   </div>
   </header>
 
@@ -291,10 +388,10 @@
     <strong>Emic Travel Co.</strong> &nbsp;·&nbsp;
     Group 1, Vong Nhi Village, Cam Thanh Commune, Hoi An City, Quang Nam Province, Viet Nam
     <br>
-    ☎ <a href="tel:+84905402286">+84 90 54 02 286</a> &nbsp;·&nbsp;
-    Fax <a href="tel:+84905402286">+84 90 54 02 286</a> &nbsp;·&nbsp;
-    ✉ <a href="mailto:sales@emictravel.com">sales@emictravel.com</a> &nbsp;·&nbsp;
-    <a href="https://emictravel.com/" target="_blank">Emic Travel Homepage</a>
+    ☎ <a class="ink-text" href="tel:+84905402286">+84 90 54 02 286</a> &nbsp;·&nbsp;
+    Fax <a class="ink-text" href="tel:+84905402286">+84 90 54 02 286</a> &nbsp;·&nbsp;
+    ✉ <a class="ink-text" href="mailto:sales@emictravel.com">sales@emictravel.com</a> &nbsp;·&nbsp;
+    <a class="ink-text" href="https://emictravel.com/" target="_blank">Emic Travel Homepage</a>
   </div>
 </footer>
 
@@ -319,7 +416,7 @@
       padding: 7px 30px;    /* tăng chiều cao & chiều rộng */
       color: #008000;
       border: 2px solid #008000;
-      border-radius: 10px;
+      border-radius: 8px;
     ">Login</button> -->
     <button class="btn-login">Login</button>
     <p>*Please ask tour guide for your account.</p>
@@ -342,6 +439,17 @@
         footer.classList.remove('shine');
       });
     });
+
+    // const btn = document.getElementById('downloadBtn');
+    // btn.addEventListener('click', () => {
+    //   const url = btn.dataset.url;          // lấy từ data‑url
+    //   const a   = document.createElement('a');
+    //   a.href     = url;
+    //   a.download = url.split('/').pop();
+    //   document.body.appendChild(a);
+    //   a.click();
+    //   a.remove();
+    // });
 
     document.addEventListener('DOMContentLoaded', () => {
     const btn   = document.getElementById('info-btn');
@@ -418,7 +526,7 @@
       const token  = params.get('token');
 
       if (token) {
-        console.log('Token trên URL là:', token);
+        // console.log('Token trên URL là:', token);
         /* TODO: dùng token để gọi API, hiển thị dữ liệu, v.v. */
         const res = await fetch('/Alogin', {
         method: 'POST',
@@ -452,7 +560,7 @@
     async function showResult(res, data, username = '') {
       // Here 1
       result.style.display = "block";
-      // console.log("Hello Okeee0")
+      // console.log("Hello Okeee0", data)
 
       if (res.ok && String(data.success_message) === "T_G") {
         // const images = data.responseData.images || [];
@@ -483,7 +591,7 @@
           img.loading = "lazy";
 
           const caption = document.createElement("p");
-          caption.textContent = "Dear " + Customer_Name + ", this is your GGGG account:";
+          caption.textContent = "Dear " + Customer_Name + ", this is your Emic Travel account:";
 
           wrap.append(caption, img);
           result.appendChild(wrap);
@@ -506,14 +614,14 @@
           <h3>Hello ${username},</h3>
           <p>${data.message}</p>
 
-          <p><b>Your Regular Consumption without GGGG:</b> ${oldVal.toFixed(2)} / ${oldTotal.toFixed(2)} g CO₂ (*)</p>
+          <p><b>Your Regular Consumption without Emic Travel:</b> ${oldVal.toFixed(2)} / ${oldTotal.toFixed(2)} g CO₂ (*)</p>
           <div style="background: #eee; border-radius: 8px; overflow: hidden;">
             <div style="width: ${oldPercent}%; background: #f44336; color: white; padding: 5px;">
               ${oldPercent}%
             </div>
           </div><br>
 
-          <p><b>Your Consumption with GGGG:</b> ${newVal.toFixed(2)} / ${newTotal.toFixed(2)} g CO₂ (*)</p>
+          <p><b>Your Consumption with Emic Travel:</b> ${newVal.toFixed(2)} / ${newTotal.toFixed(2)} g CO₂ (*)</p>
           <div style="background: #eee; border-radius: 8px; overflow: hidden;">
             <div style="width: ${newPercent}%; background: #2196f3; color: white; padding: 5px;">
               ${newPercent}%
@@ -548,8 +656,20 @@
           <h3>${data.certificateMessage2}</h3>
           ${data.certificateUrl ? `
           <iframe src="${data.certificateUrl}" width="100%" height="600px" style="border: 1px solid #ccc;"></iframe>
+          <button id="downloadBtn" class="btn-login" data-url="${data.certificateUrl}">Download certificate</button>
           ` : ''}`;
         }
+        result.addEventListener('click', async (e) => {
+        if (!e.target.matches('#downloadBtn')) return;  // bỏ qua click khác
+          // ... Code tải file như trên, dùng e.target thay vì btn
+          const url = e.target.dataset.url;          // lấy từ data‑url
+          const a   = document.createElement('a');
+          a.href     = url;
+          a.download = url.split('/').pop();
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+        });
         result.innerHTML = content;
       } else {
         result.innerHTML = `<p class="error"> Error showing data: ${data.message}</p>`;
@@ -561,7 +681,7 @@
   <!-- <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> -->
   <!-- <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> -->
 
-  <h3>2. Important numbers and data of GGGG</h3>
+  <h3>2. Important numbers and data of Emic Travel</h3>
   <!-- <canvas id="wasteChart" width="800" height="400"></canvas> -->
   <!-- <canvas id="wasteChart" width="500" height="500"></canvas> -->
   <!-- <canvas id="wastePieChart" width="400" height="400"></canvas> -->
@@ -575,6 +695,7 @@
     max-width: 1000px;  /* hoặc 200px */
     max-height: 280px;
     background-color: #fff;
+    border-radius: 8px;
   }
   </style>
 <canvas id="carbonBarChart"></canvas>
