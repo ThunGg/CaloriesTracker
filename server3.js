@@ -119,8 +119,10 @@ import XLSX from 'xlsx';
 
 // let workbook = XLSX.readFile('./data/My_Proceeded_Data.xlsx');
 
-const GUSER   = process.env.GITHUB_USER || '<ThunGg>';
-const GREPO   = process.env.GITHUB_REPO || '<CaloriesTracker>';
+import crypto   from 'crypto';
+import axios    from 'axios';
+const GUSER   = 'ThunGg';
+const GREPO   = 'CaloriesTracker';
 const GBRANCH = 'main';
 const RAW_URL = `https://raw.githubusercontent.com/${GUSER}/${GREPO}/${GBRANCH}/data/My_Proceeded_Data.xlsx`;
 const WEBHOOK_SECRET = 'supersecretET_7_2025';
