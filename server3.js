@@ -110,7 +110,14 @@ export function trackRequest(req, req_originalUrl) {
 }
 
 
-app.use(bodyParser.json());
+// app.use(bodyParser.json());
+// GỌI DUY NHẤT – có verify /* ---------- Middleware đọc raw body để verify HMAC ---------- */
+app.use(bodyParser.json({
+  limit: '5mb',
+  verify: (req, _res, buf) => {   // buf là Buffer raw
+    req.rawBody = buf;            // lưu lại để HMAC
+  }
+}));
 app.use(express.static("public"));
 app.use('/public', express.static(path.join(__dirname, 'public')));
 app.set("view engine", "ejs");
@@ -128,9 +135,9 @@ const RAW_URL = `https://raw.githubusercontent.com/${GUSER}/${GREPO}/${GBRANCH}/
 const WEBHOOK_SECRET = 'supersecretET_7_2025';
 const EXCEL_PATH = path.resolve('./data/My_Proceeded_Data.xlsx');   // đường dẫn cố định
 /* ---------- Middleware đọc raw body để verify HMAC ---------- */
-app.use(express.json({
-  verify: (req, _res, buf) => { req.rawBody = buf; }
-}));
+// app.use(express.json({
+//   verify: (req, _res, buf) => { req.rawBody = buf; }
+// }));
 
 let workbook = null;
 /* --- Hàm tải file .xlsx rồi nạp workbook --- */
