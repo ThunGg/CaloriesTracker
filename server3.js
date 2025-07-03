@@ -2,13 +2,15 @@ import express from "express";
 import bodyParser from "body-parser";
 import path from "path";
 import { fileURLToPath } from "url";
-import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
+// import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
+import { PDFDocument, rgb } from 'pdf-lib';
 import fs from 'fs';
 import fontkit from '@pdf-lib/fontkit'; // ← cần cái này
 import jwt from 'jsonwebtoken';
 import QRCode    from 'qrcode';
 import geoip from 'geoip-lite';
-import cron from 'node-cron';
+
+// import cron from 'node-cron';
 // import { existsSync, createWriteStream, writeFileSync } from 'fs';
 
 
@@ -37,6 +39,7 @@ app.set('trust proxy', true);
 global.cnt_Web_Visit_times = 0;
 global.cnt_Guest_Web_Login_times = 0;
 global.cnt_TourGuide_Web_Login_times = 0;
+global.cnt_Guest_DownloadCert_times = 0;
 
 app.use((req, res, next) => {
 //   const rawIp = req.ip || req.connection.remoteAddress;
@@ -60,11 +63,16 @@ app.use((req, res, next) => {
 //     `"${req.headers['user-agent']?.replace(/"/g, '""') || ''}"\n`
 //   );
   
-//   console.log(new Date().toISOString(), ip, country, req.method, req.originalUrl, req.headers['user-agent']?.replace(/"/g, '""') || '')
+//   console.log(req.originalUrl, req.headers['user-agent']?.replace(/"/g, '""') || '')
   if (req.originalUrl === "/commonData"){
     // trackRequest(req, "WebVisit")
     global.cnt_Web_Visit_times ++
-    console.log(" + Web_Visit_times =", global.cnt_Web_Visit_times, "; TourGuide_Web_Login_times =", global.cnt_TourGuide_Web_Login_times, "; Guest_Web_Login_times =", global.cnt_Guest_Web_Login_times)
+    // console.log(" + Web_Visit_times =", global.cnt_Web_Visit_times, "; TourGuide_Web_Login_times =", global.cnt_TourGuide_Web_Login_times, "; Guest_Web_Login_times =", global.cnt_Guest_Web_Login_times)
+    console.log(" + Web_Visit_times =", global.cnt_Web_Visit_times, "; TourGuide_Web_Login_times =", global.cnt_TourGuide_Web_Login_times, "; Guest_Web_Login_times =", global.cnt_Guest_Web_Login_times, "; Guest_DownloadCert_times =", global.cnt_Guest_DownloadCert_times)
+  }
+  if (req.originalUrl.includes("/public/certificates")){
+    global.cnt_Guest_DownloadCert_times ++
+    console.log(" + Web_Visit_times =", global.cnt_Web_Visit_times, "; TourGuide_Web_Login_times =", global.cnt_TourGuide_Web_Login_times, "; Guest_Web_Login_times =", global.cnt_Guest_Web_Login_times, "; Guest_DownloadCert_times =", global.cnt_Guest_DownloadCert_times)
   }
   next();
 });
@@ -98,7 +106,7 @@ export function trackRequest(req, req_originalUrl) {
     `"${(req.headers['user-agent'] || '').replace(/"/g, '""')}"\n`;
 
   csvStream.write(line);
-  console.log("TrackLog =", line)
+//   console.log("TrackLog =", line)
 }
 
 
@@ -108,7 +116,26 @@ app.use('/public', express.static(path.join(__dirname, 'public')));
 app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "views"));
 import XLSX from 'xlsx';
-const workbook = XLSX.readFile('./data/My_Proceeded_Data.xlsx');
+let workbook = XLSX.readFile('./data/My_Proceeded_Data.xlsx');
+
+import chokidar from 'chokidar';
+
+chokidar.watch('./data/My_Proceeded_Data.xlsx', {   // hoặc đường dẫn tuyệt đối
+    persistent: true,
+    awaitWriteFinish: {   // chờ Excel ghi xong để tránh đọc file nửa chừng
+      stabilityThreshold: 1000,
+      pollInterval: 100
+    }
+  })
+  .on('change', (path) => {
+    console.log(`[${new Date().toISOString()}] ${path} changed -> reload`);
+    try {
+    //   cache = loadData(path);          // nạp lại vào biến cache
+    workbook = XLSX.readFile('./data/My_Proceeded_Data.xlsx');
+    } catch (err) {
+      console.error('Lỗi đọc Excel:', err);
+    }
+});
 
 
 // Route kiểm tra thông tin đăng nhập
@@ -137,6 +164,7 @@ function sleep(ms) {
 async function loginHandler(req, res) {
     const { username, password } = req.body;
     let INPDATA = [];
+    // console.log("hello0")
     try {
         INPDATA = readTDataSheets(workbook);
         // console.log("Loaded INPDATA:");
@@ -176,6 +204,7 @@ async function loginHandler(req, res) {
                     let token_string = String(username).trim() + " " + Tour_Name_INP + " " + Customer_Name;
                     const key = "emic_key"
                     const url = "https://co2tracker.onrender.com/?token=" + jwt.sign({ custom: token_string }, key);
+                    // const url = "http://localhost:3000/?token=" + jwt.sign({ custom: token_string }, key);
                     // console.log("token =", url)
                     const qrData  = await QRCode.toDataURL(url, {
                         margin: 1,
@@ -192,7 +221,8 @@ async function loginHandler(req, res) {
             };
             // trackRequest(req, "TourGuideLogin")
             global.cnt_TourGuide_Web_Login_times ++
-            console.log(" + Web_Visit_times =", global.cnt_Web_Visit_times, "; TourGuide_Web_Login_times =", global.cnt_TourGuide_Web_Login_times, "; Guest_Web_Login_times =", global.cnt_Guest_Web_Login_times)
+            // console.log(" + Web_Visit_times =", global.cnt_Web_Visit_times, "; TourGuide_Web_Login_times =", global.cnt_TourGuide_Web_Login_times, "; Guest_Web_Login_times =", global.cnt_Guest_Web_Login_times)
+            console.log(" + Web_Visit_times =", global.cnt_Web_Visit_times, "; TourGuide_Web_Login_times =", global.cnt_TourGuide_Web_Login_times, "; Guest_Web_Login_times =", global.cnt_Guest_Web_Login_times, "; Guest_DownloadCert_times =", global.cnt_Guest_DownloadCert_times)
             res.json(responseData);
             // console.log("Hello2")
         }
@@ -205,6 +235,7 @@ async function loginHandler(req, res) {
             )
         );
         if (userGroup) {
+            // console.log("userGroup =", userGroup)
             let MenuAndActivitiesData = {};
             try {
                 MenuAndActivitiesData = readMenuAndActivitiesData(workbook);
@@ -236,12 +267,14 @@ async function loginHandler(req, res) {
             let cntTotal = 0;
             const timetable = userGroup.TimeTable || {};
             let selectMonth = -1;
+            // console.log("Object.entries(timetable) =", Object.entries(timetable))
             for (const [dateKey, activities] of Object.entries(timetable)) {
-                const [month, day, yearSuffix] = dateKey.split("/").map(Number);
+                const [day, month, yearSuffix] = dateKey.split("/").map(Number);
+                // console.log('month =', month, 'day =', day, 'yearSuffix =', yearSuffix)
                 const year = 2000 + yearSuffix;
                 const activityDate = new Date(year, month - 1, day);
                 selectMonth = new Date(year, month-1)
-                // console.log('selectMonth =', selectMonth)
+                // console.log('In selectMonth =', selectMonth)
 
                 if (!(activities && Array.isArray(activities))) continue;
 
@@ -291,6 +324,7 @@ async function loginHandler(req, res) {
             let CarbonFootprintIndex_Total = [null, null, null]
             try {
                 CarbonFootprintIndex_Total = readGeneral2Data(workbook, selectMonth);
+                // console.log("CarbonFootprintIndex_Total =", CarbonFootprintIndex_Total)
                 // console.log('CarbonFootprintIndex_Total:', CarbonFootprintIndex_Total)
                 // console.log('averageDayPerServing:', averageDayPerServing)
             } catch (error) {
@@ -338,9 +372,11 @@ async function loginHandler(req, res) {
             // console.log(number0-number1);
 
             if (number0 === CarbonFootprintIndex_Total[0] && number1 === CarbonFootprintIndex_Total[1] && number0 - number1 === CarbonFootprintIndex_Total[2]){
-                responseData.certificateUrl = `./public/certificates/${encodeURIComponent(username)}.pdf`;
-                responseData.certificateMessage1 = `✅ Congratulate! You have finished the tour with GGGG 🥳 Below is your certificate`
+                let token_string = userGroup.Tour_Guide + " " + userGroup.Tour_Name + " " + username;
+                responseData.certificateUrl = `./public/certificates/${encodeURIComponent(token_string)}.pdf`;
+                responseData.certificateMessage1 = `✅ Congratulate! You have successfully completed the Low-carbon travel tour Cycling Cam with Emic Travel 🥳 Below is your certificate`
                 responseData.certificateMessage2 = `👏 Thank you for being with us. We look forward to seeing you again!`
+                
                 if (!fs.existsSync(responseData.certificateUrl)) {
                     const name = username; // hoặc tên thật của người dùng
                     const existingPdfBytes = fs.readFileSync("./data/certificate-template.pdf");
@@ -351,35 +387,68 @@ async function loginHandler(req, res) {
                     // const font = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
                     const fontBytes = fs.readFileSync(path.join(__dirname, 'fonts', 'arial.ttf'));
                     const customFont = await pdfDoc.embedFont(fontBytes);
-                    const textWidth = customFont.widthOfTextAtSize(name, 56);
-                    const { width } = page.getSize();
-                    const x = (width - textWidth) / 2;
+                    pdfDoc.setTitle('CERTIFICATE OF LOW-CARBON TOUR');
+                    pdfDoc.setAuthor('Emic Travel');
+                    
+
+                    const key = "emic_key"
+                    const url = "https://co2tracker.onrender.com/?token=" + jwt.sign({ custom: token_string }, key);
+                    // const url = "http://localhost:3000/?token=" + jwt.sign({ custom: token_string }, key);
+                    // console.log("token =", url)
+                    const qrData  = await QRCode.toDataURL(url, {
+                        margin: 1,
+                        scale : 6,
+                        errorCorrectionLevel: 'M',
+                    });
+                    const pngBase64 = qrData.split(',')[1];
+                    const pngBuffer = Buffer.from(pngBase64, 'base64');
+                    const qrImage = await pdfDoc.embedPng(pngBuffer);
+                    // const { width } = page.getSize();
+                    const { width, height } = page.getSize();   // lấy cả width và height
+                    // 4) Tùy chỉnh kích thước và vẽ
+                    const qrDims = qrImage.scale(0.5); // hoặc bất kỳ tỉ lệ nào bạn muốn
+                    page.drawImage(qrImage, {
+                    x: width - qrDims.width - 20,   // 40 pt cách mép phải
+                    y: height - qrDims.height -20,                          // 40 pt cách mép dưới
+                    width: qrDims.width,
+                    height: qrDims.height,
+                    });
+
+                    
+                    let textWidth = customFont.widthOfTextAtSize(name, 60);
+                    let x = (width - textWidth) / 2;
+                    const bg_color = rgb(116 / 255, 72 / 255, 41 / 255);
                     page.drawText(name, {
                         x: x,
-                        y: 300,
-                        size: 56,
+                        y: 350,
+                        size: 60,
                         font: customFont,
-                        color: rgb(1, 1, 1),
+                        // color: rgb(1, 1, 1),
+                        color: bg_color,
                     });
-                    let contentToPdf = `has finished the green tour and`
+                    // let contentToPdf = `has finished the green tour and`
+                    // page.drawText(contentToPdf, {
+                    //     x: 150,
+                    //     y: 240,
+                    //     size: 30,
+                    //     font: customFont,
+                    //     color: rgb(1, 1, 1),
+                    // });
+                    
+                    let contentToPdf = `${number0 - number1}`
+                    textWidth = customFont.widthOfTextAtSize(contentToPdf, 23);
+                    x = (width - textWidth) / 2;
                     page.drawText(contentToPdf, {
-                        x: 150,
-                        y: 240,
-                        size: 30,
+                        x: x,
+                        y: 255,
+                        size: 23,
                         font: customFont,
-                        color: rgb(1, 1, 1),
-                    });
-                    contentToPdf = `successfully saved ${number0 - number1} grams Carbon dioxide.`
-                    page.drawText(contentToPdf, {
-                        x: 150,
-                        y: 200,
-                        size: 30,
-                        font: customFont,
-                        color: rgb(1, 1, 1),
+                        // color: rgb(1, 1, 1),
+                        color: bg_color,
                     });
                     const pdfBytes = await pdfDoc.save();
                     // 2. Lưu file ra thư mục công khai để client có thể tải
-                    const outputPath = path.join(__dirname, "public", "certificates", `${username}.pdf`);
+                    const outputPath = path.join(__dirname, "public", "certificates", `${token_string}.pdf`);
                     fs.writeFileSync(outputPath, pdfBytes);
                 }
             }
@@ -390,11 +459,14 @@ async function loginHandler(req, res) {
             } else{
                 logTrack = "GuestLogin_"+String(username)+"_Pss_"+String(password);
             }
-            console.log("*****logTrack =", logTrack)
+            // console.log("*****logTrack =", logTrack)
             // trackRequest(req, logTrack)
             global.cnt_Guest_Web_Login_times ++
             // console.log(" + cnt_Web_Visit_times =", cnt_Web_Visit_times, "; cnt_Web_Login_times =", cnt_Web_Login_times)
-            console.log(" + Web_Visit_times =", global.cnt_Web_Visit_times, "; TourGuide_Web_Login_times =", global.cnt_TourGuide_Web_Login_times, "; Guest_Web_Login_times =", global.cnt_Guest_Web_Login_times)
+            // console.log(" + Web_Visit_times =", global.cnt_Web_Visit_times, "; TourGuide_Web_Login_times =", global.cnt_TourGuide_Web_Login_times, "; Guest_Web_Login_times =", global.cnt_Guest_Web_Login_times)
+            console.log(" + Web_Visit_times =", global.cnt_Web_Visit_times, "; TourGuide_Web_Login_times =", global.cnt_TourGuide_Web_Login_times, "; Guest_Web_Login_times =", global.cnt_Guest_Web_Login_times, "; Guest_DownloadCert_times =", global.cnt_Guest_DownloadCert_times)
+            // console.log("hello1", responseData)
+
             return res.json(responseData);
         } else {
             res.status(401).json({
@@ -411,7 +483,7 @@ app.post('/login', loginHandler);
 app.post('/Alogin', async (req, res) => {
     // console.log("token =",);
     const { token } = req.body;
-    console.log("token =", token);
+    // console.log("token =", token);
     try {
             const key = "emic_key"
             const decoded = jwt.verify(token, key); // const secretKey       = process.env.JWT_SECRET || 'your-secret-key';
@@ -423,13 +495,13 @@ app.post('/Alogin', async (req, res) => {
             // console.log("HelloK 1")
             // const Tour_Guide_Name = decoded.custom.slice(words[0])
             const password = words[1]
-            console.log("HelloK 2")
+            // console.log("HelloK 2")
             const username = words[2]
             // const { username, password } = req.body;
             // req.jwt = { Tour_Guide_Name, Tour_Name, username, decoded };
-            console.log("HelloK 4")
+            // console.log("HelloK 4")
             req.body = { username, password };
-            console.log("HelloK 5", username, password)
+            // console.log("HelloK 5", username, password)
             // res.json(loginHandler(req, res));
             req.LogTrack = "GuestLogin_"+String(username)+"_TourName_"+String(password);
             return loginHandler(req, res);
