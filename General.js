@@ -107,7 +107,7 @@ export function readGeneralData(workbook) {
   General1_waste.value = General1_waste.value*1000
 
   // Lấy giá trị ô P4
-  const plastic_bottle_Path = sheet['P4']?.v ?? null;
+  const plastic_bottle_Path = sheet['Q4']?.v ?? null;
   return {General1_carbon, carbon, General1_plastic, General1_waste, plastic_bottle_Path,};
 }
 
