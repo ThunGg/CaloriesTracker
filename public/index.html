@@ -634,14 +634,29 @@
               ${gapPercent}%
             </div>
           </div>
+          <p>(*) 1 kilogram (kg) = 1,000 grams (g)</p>
+          <br>
           <p><b>Your savings corresponds to:</b></p>
           <ul style="padding-left: 2.5em;">
             <div style="line-height: 1.6;">
             <li>You have planted: <b>${compare[0].toFixed(2)}</b> trees 🌳🌳🌳 in a day, or</li>
-            <li>You don't drive a gasoline car ⛽🚗 for: <b>${compare[1].toFixed(2)}</b> kilometers.</li>
+            <li>You don't drive a gasoline car ⛽🚗 for: <b>${compare[1].toFixed(2)}</b> meters.</li>
             </div>
           </ul>
-          <p>(*) 1 kilogram (kg) = 1,000 grams (g)</p>
+          
+          <p><strong>According to the 
+            <a href="https://www.epa.gov/energy/greenhouse-gas-equivalencies-calculator-calculations-and-references"
+              target="_blank" rel="noopener noreferrer">
+              EPA
+            </a>
+            :
+            </strong>
+          </p>
+          <ul style="padding-left: 2.5em;">
+            <li>A single tree absorbs about 60 kilograms of CO₂ / year, which is equivalent to about 164.38 grams / day. Therefore, the number of trees required to absorb a given amount of CO₂ in a day can be calculated by dividing that amount by 164.38.</li>
+            <li>Saving 1 gram of CO₂ is equivalent to avoiding approximately 4.13 meters of driving in a gasoline-powered vehicle.</li>
+          </ul>
+
         `;
         if (data.certificateUrl) {
           // const link = document.createElement("a");
@@ -652,6 +667,7 @@
           // document.body.removeChild(link);
           // <h4>Success ✅</h4>
           content += `
+          <br>
           <h3>${data.certificateMessage1}</h3>
           <h3>${data.certificateMessage2}</h3>
           ${data.certificateUrl ? `
