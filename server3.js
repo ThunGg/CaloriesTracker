@@ -210,10 +210,10 @@ async function loginHandler(req, res) {
         // console.log("Loaded INPDATA:");
         // console.log(JSON.stringify(INPDATA, null, 2));
     } catch (err) {
-        console.error("Lỗi khi đọc dữ liệu từ file Excel:", err);
+        console.error("Error reading data:", err);
         return res.status(500).json({
             success: false,
-            message: "Lỗi máy chủ khi xử lý dữ liệu"
+            message: "Error: Server error while processing data"
         });
     }
     //   console.log(username);
@@ -368,7 +368,7 @@ async function loginHandler(req, res) {
                 // console.log('CarbonFootprintIndex_Total:', CarbonFootprintIndex_Total)
                 // console.log('averageDayPerServing:', averageDayPerServing)
             } catch (error) {
-                console.error('Lỗi đọc file:', error.message);
+                console.error('Reading data error:', error.message);
             }
 
             const number1 = (CarbonFootprintIndex_Total[1] - total)/cntTotal*cntUpToNow + totalUpToNow;
@@ -392,7 +392,8 @@ async function loginHandler(req, res) {
                 totalOldConsumptionUntilNow: [number0, CarbonFootprintIndex_Total[0]],
                 totalNewConsumptionUntilNow: [number1, CarbonFootprintIndex_Total[1]],
                 gap: [number0 - number1, CarbonFootprintIndex_Total[2]],
-                compare: [(number0 - number1) * 16.6 / 1000, (number0 - number1) * 6.7 / 1000],
+                // compare: [(number0 - number1) * 16.6 / 1000, (number0 - number1) * 6.7 / 1000],
+                compare: [(number0 - number1) / 164.38, (number0 - number1) * 4.13],
             };
             // res.json({
             //     success: true,
@@ -512,7 +513,7 @@ async function loginHandler(req, res) {
         } else {
             res.status(401).json({
                 success: false,
-                message: "Tài khoản hoặc mật khẩu không đúng"
+                message: "Incorrect account or password !"
             });
         }
     }
@@ -563,7 +564,7 @@ app.get("/commonData", async (req, res) => {
         res.json({General1_carbon, carbon, General1_plastic, General1_waste, plastic_bottle_Path});
     } catch (error) {
         console.error('commonData not available!:', error.message);
-        res.status(500).json({ error: 'Lỗi xử lý dữ liệu trên server' });
+        res.status(500).json({ error: 'Error processing data on server' });
     }
 });
 
